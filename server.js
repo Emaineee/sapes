@@ -24,6 +24,10 @@ db.exec(`
     role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS consents (
+    user_id INTEGER PRIMARY KEY,
+    agreed_at TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student TEXT NOT NULL,
@@ -50,6 +54,9 @@ const getUserByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
 const getUserById = db.prepare('SELECT * FROM users WHERE id = ?');
 const getAllUsers = db.prepare('SELECT id, username, name, role, created_at FROM users ORDER BY id');
 const updateUserRole = db.prepare('UPDATE users SET role = ? WHERE id = ?');
+
+const hasConsented = db.prepare('SELECT agreed_at FROM consents WHERE user_id = ?');
+const recordConsent = db.prepare('INSERT OR IGNORE INTO consents (user_id, agreed_at) VALUES (?, ?)');
 
 const insertAppointment = db.prepare('INSERT INTO appointments (student, counselor_id, date, time, purpose, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
 const getAppointmentsAll = db.prepare('SELECT * FROM appointments ORDER BY date, time');
@@ -132,6 +139,12 @@ function requireRole(...roles) {
   };
 }
 
+function requireConsent(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+  if (hasConsented.get(req.session.user.id)) return next();
+  res.redirect('/nda');
+}
+
 app.get('/', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.redirect('/home');
@@ -192,19 +205,31 @@ app.post('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
 
-app.get('/home', requireAuth, (req, res) => {
+app.get('/nda', requireAuth, (req, res) => {
+  if (hasConsented.get(req.session.user.id)) return res.redirect('/home');
+  res.render('nda', { user: req.session.user });
+});
+
+app.post('/nda', requireAuth, (req, res) => {
+  if (req.body.agree) {
+    recordConsent.run(req.session.user.id, new Date().toISOString());
+  }
+  res.redirect('/home');
+});
+
+app.get('/home', requireAuth, requireConsent, (req, res) => {
   res.render('home', { user: req.session.user });
 });
 
-app.get('/letter', requireAuth, (req, res) => {
+app.get('/letter', requireAuth, requireConsent, (req, res) => {
   res.render('letter', { user: req.session.user });
 });
 
-app.get('/guidance', requireAuth, (req, res) => {
+app.get('/guidance', requireAuth, requireConsent, (req, res) => {
   res.render('guidance', { user: req.session.user, counselors: COUNSELORS });
 });
 
-app.get('/appointments', requireAuth, (req, res) => {
+app.get('/appointments', requireAuth, requireConsent, (req, res) => {
   const rows =
     req.session.user.role === 'admin'
       ? getAppointmentsAll.all()
@@ -218,7 +243,7 @@ app.get('/appointments', requireAuth, (req, res) => {
   });
 });
 
-app.post('/appointments', requireAuth, (req, res) => {
+app.post('/appointments', requireAuth, requireConsent, (req, res) => {
   const { counselorId, date, time, purpose } = req.body;
   const counselor = counselorById(Number(counselorId));
   const error = !counselor || !date || !time
@@ -248,19 +273,19 @@ app.post('/appointments', requireAuth, (req, res) => {
   res.redirect('/appointments');
 });
 
-app.post('/appointments/:id/complete', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
   const appt = getAppointmentById.get(Number(req.params.id));
   if (appt) updateAppointmentStatus.run('completed', appt.id);
   res.redirect('/appointments');
 });
 
-app.post('/appointments/:id/cancel', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/appointments/:id/cancel', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
   const appt = getAppointmentById.get(Number(req.params.id));
   if (appt) updateAppointmentStatus.run('cancelled', appt.id);
   res.redirect('/appointments');
 });
 
-app.get('/concerns', requireAuth, (req, res) => {
+app.get('/concerns', requireAuth, requireConsent, (req, res) => {
   res.render('concerns', {
     user: req.session.user,
     concerns:
@@ -271,7 +296,7 @@ app.get('/concerns', requireAuth, (req, res) => {
   });
 });
 
-app.post('/concerns', requireAuth, (req, res) => {
+app.post('/concerns', requireAuth, requireConsent, (req, res) => {
   const { category, title, description } = req.body;
   const error = !category || !title || !description
     ? 'Please fill in the category, title, and description.'
@@ -297,21 +322,21 @@ app.post('/concerns', requireAuth, (req, res) => {
   res.redirect('/concerns');
 });
 
-app.post('/concerns/:id/resolve', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/concerns/:id/resolve', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
   const c = getConcernById.get(Number(req.params.id));
   if (c) updateConcernStatus.run(c.status === 'resolved' ? 'open' : 'resolved', c.id);
   res.redirect('/concerns');
 });
 
-app.get('/profile', requireAuth, (req, res) => {
+app.get('/profile', requireAuth, requireConsent, (req, res) => {
   res.render('profile', { user: req.session.user });
 });
 
-app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
+app.get('/admin', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
   res.render('admin', { user: req.session.user, users: getAllUsers.all() });
 });
 
-app.post('/admin/users/:id/role', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/admin/users/:id/role', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
   const target = getUserById.get(Number(req.params.id));
   if (target && target.id !== req.session.user.id) {
     updateUserRole.run(target.role === 'admin' ? 'user' : 'admin', target.id);
@@ -324,6 +349,6 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`SAPES site running at http://localhost:${PORT}`);
+  console.log(`GuideTrack site running at http://localhost:${PORT}`);
   console.log('Seed logins: admin/admin123 (admin), user/user123 (user) — or register a new account.');
 });

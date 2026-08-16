@@ -660,6 +660,64 @@ td.actions { display: flex; gap: 0.5rem; white-space: nowrap; }
 .concern-actions { margin-top: 0.7rem; display: flex; justify-content: flex-end; }
 .concern-actions form { display: inline; }
 
+.nda-nav form { margin-left: auto; }
+
+.nda-card {
+  max-width: 780px;
+  margin: 2rem auto;
+  padding: 2.5rem;
+}
+.nda-head { border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; margin-bottom: 1.25rem; }
+.nda-head h1 { color: var(--maroon-deep); font-size: 1.7rem; }
+.nda-head .muted { color: var(--muted); }
+
+.nda-section { margin-bottom: 1.5rem; }
+.nda-section h2 {
+  font-size: 0.95rem;
+  color: #fff;
+  background: linear-gradient(120deg, var(--maroon), var(--maroon-dark));
+  display: inline-block;
+  padding: 0.32rem 1.05rem;
+  border-radius: 999px;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.02em;
+}
+.nda-section p { margin: 0; color: #4c4134; }
+
+.nda-form { margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+.nda-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin-top: 0;
+  cursor: pointer;
+  background: #fdf6cf;
+  border: 1px solid var(--yellow);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+.nda-check input {
+  margin-top: 0.15rem;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--maroon);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.nda-check input:focus { box-shadow: 0 0 0 4px rgba(127, 29, 29, 0.15); }
+
+.nda-form .btn:disabled {
+  background: #c9bdb1;
+  color: #fff;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.nda-form .btn:disabled:hover { background: #c9bdb1; }
+
 @media print {
   nav, .site-footer, .btn, .banner-approved { display: none !important; }
   body { background: #fff !important; }

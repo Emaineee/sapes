@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuideTrack | Data Privacy NDA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav class="nda-nav">
+    <span class="brand">
+      <span class="brand-name">Guide<em>Track</em></span>
+      <span class="brand-sub">Guidance Management System • UPHS-DALTA Calamba</span>
+    </span>
+    <form method="POST" action="/logout">
+      <button type="submit" class="btn subtle">Sign out</button>
+    </form>
+  </nav>
+
+  <main class="container container-narrow">
+    <section class="card nda-card">
+      <div class="nda-head">
+        <p class="kicker">Confidentiality &amp; Consent</p>
+        <h1>GuideTrack | Data Privacy NDA</h1>
+        <p class="muted">
+          Before you can access the appointment portal, please review the Non-Disclosure Agreement and
+          Data Privacy Notice below. This page informs users of their rights and responsibilities
+          regarding the collection, processing, and protection of personal information within the system.
+        </p>
+      </div>
+
+      <div class="nda-section">
+        <h2>Compliance</h2>
+        <p>
+          The Guidance Office of the University of Perpetual Help System DALTA – Calamba Campus adheres
+          to the provisions of the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>.
+          The GuideTrack system is committed to protecting the personal information of all users in
+          accordance with national data privacy regulations and university policies.
+        </p>
+      </div>
+
+      <div class="nda-section">
+        <h2>Confidentiality</h2>
+        <p>
+          All consultation sessions, personal concerns, and records submitted through the GuideTrack
+          system are treated as <strong>strictly confidential</strong>. Such information can only be
+          accessed by authorized guidance personnel and will be used solely for academic, guidance, and
+          research purposes. Access is restricted to protect sensitive student information and support
+          the ethical handling of counseling records.
+        </p>
+      </div>
+
+      <div class="nda-section">
+        <h2>Consent</h2>
+        <p>
+          By agreeing to these terms, you acknowledge that the information you provide is accurate and
+          true, and you consent to the <strong>secure digital processing of your records</strong> within
+          the GuideTrack system. You further agree not to disclose any confidential information obtained
+          through the system.
+        </p>
+      </div>
+
+      <form method="POST" action="/nda" class="nda-form">
+        <label class="nda-check">
+          <input type="checkbox" name="agree" value="1" id="agree-check">
+          <span>I have read, understood, and accepted the terms and conditions presented in this
+            Non-Disclosure Agreement and Data Privacy Notice.</span>
+        </label>
+
+        <button type="submit" id="proceed-btn" class="btn primary" disabled>Proceed to Appointment Portal</button>
+      </form>
+    </section>
+  </main>
+
+  <%- include('partials/footer', { user }) %>
+
+  <script>
+    (function () {
+      var check = document.getElementById('agree-check');
+      var btn = document.getElementById('proceed-btn');
+      check.addEventListener('change', function () {
+        btn.disabled = !check.checked;
+      });
+    })();
+  </script>
+</body>
+</html>
