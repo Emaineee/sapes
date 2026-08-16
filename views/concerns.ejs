@@ -1,72 +1,127 @@
-<%- include('partials/header', { user, title: '', path }) %>
+<%- include('partials/header', { user, title: 'Concerns', path }) %>
 
-<main class="container">
-  <section class="hero">
-    <p class="kicker">Student Feedback</p>
-    <h1>Concerns &amp; Problems</h1>
-    <p class="muted"><%= user.role === 'admin' ? 'Viewing all reports (admin).' : 'Report a concern or problem you are facing.' %></p>
-  </section>
+<%
+  const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const openCount = concerns.filter((c) => c.status === 'open').length;
+  const resolvedCount = concerns.filter((c) => c.status === 'resolved').length;
+  const resolution = concerns.length === 0 ? '—' : Math.round((resolvedCount / concerns.length) * 100) + '%';
+%>
+
+<main class="container container-wide">
+  <div class="page-head-row">
+    <div>
+      <p class="kicker">Student Feedback</p>
+      <h1>Concerns &amp; Problems</h1>
+      <p class="muted"><%= user.role === 'admin' ? 'All reports across all students — admin view.' : 'Report a concern or problem you are facing.' %></p>
+    </div>
+  </div>
 
   <% if (error) { %>
     <div class="alert error"><%= error %></div>
   <% } %>
 
-  <div class="card">
-    <h2>Report a Concern</h2>
-    <form method="POST" action="/concerns" class="form-grid">
-      <div>
-        <label for="category">Category</label>
-        <select id="category" name="category" required>
-          <option value="">— Select —</option>
-          <option>Academic</option>
-          <option>Facilities</option>
-          <option>Guidance</option>
-          <option>Administrative</option>
-          <option>Other</option>
-        </select>
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num"><%= concerns.length %></div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= openCount %></div>
+      <div class="stat-label">Open</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= resolvedCount %></div>
+      <div class="stat-label">Resolved</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= user.role === 'admin' ? resolution : '—' %></div>
+      <div class="stat-label">Resolution</div>
+    </div>
+  </section>
+
+  <div class="page-grid">
+    <section class="page-main">
+      <div class="filter-chips" role="group" aria-label="Filter concerns">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="open">Open</button>
+        <button class="chip" data-filter="resolved">Resolved</button>
       </div>
 
-      <div>
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" required placeholder="Short summary">
-      </div>
-
-      <div class="full">
-        <label for="description">Description</label>
-        <textarea id="description" name="description" required placeholder="Describe the concern or problem in detail..."></textarea>
-      </div>
-
-      <div class="full">
-        <button type="submit" class="btn primary">Submit Concern</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="card">
-    <h2>Reported Concerns</h2>
-    <% if (concerns.length === 0) { %>
-      <p class="muted">No concerns reported yet.</p>
-    <% } else { %>
-      <% concerns.forEach((c) => { %>
-        <div class="concern">
-          <div class="concern-head">
-            <span class="badge status-<%= c.status %>"><%= c.status %></span>
-            <strong><%= c.title %></strong>
-            <span class="concern-meta muted"><%= c.category %> • <%= c.date %><% if (user.role === 'admin') { %> • <%= c.student %><% } %></span>
-          </div>
-          <p class="concern-body"><%= c.description %></p>
-          <% if (user.role === 'admin') { %>
-            <form method="POST" action="/concerns/<%= c.id %>/resolve">
-              <button type="submit" class="btn btn-sm <%= c.status === 'resolved' ? 'danger' : 'ok' %>">
-                <%= c.status === 'resolved' ? 'Reopen' : 'Mark Resolved' %>
-              </button>
-            </form>
-          <% } %>
+      <% if (concerns.length === 0) { %>
+        <div class="card">
+          <p class="muted">No concerns reported yet. Submit one using the form.</p>
         </div>
-      <% }) %>
-    <% } %>
+      <% } else { %>
+        <div class="concern-list">
+          <% concerns.forEach((c) => { %>
+            <article class="concern-item" data-status="<%= c.status %>">
+              <div class="concern-item-head">
+                <span class="badge status-<%= c.status %>"><%= c.status %></span>
+                <span class="tag"><%= c.category %></span>
+                <strong class="concern-title"><%= c.title %></strong>
+                <span class="concern-meta muted">
+                  <%= fmtDate(c.date) %><% if (user.role === 'admin') { %> &middot; <%= c.student %><% } %>
+                </span>
+              </div>
+              <p class="concern-body"><%= c.description %></p>
+              <% if (user.role === 'admin') { %>
+                <div class="concern-actions">
+                  <form method="POST" action="/concerns/<%= c.id %>/resolve">
+                    <button type="submit" class="btn btn-sm <%= c.status === 'resolved' ? 'danger' : 'ok' %>">
+                      <%= c.status === 'resolved' ? 'Reopen' : 'Mark Resolved' %>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <aside class="aside">
+      <div class="card aside-card">
+        <h2>Report a Concern</h2>
+        <form method="POST" action="/concerns">
+          <label for="category">Category</label>
+          <select id="category" name="category" required>
+            <option value="">— Select —</option>
+            <option>Academic</option>
+            <option>Facilities</option>
+            <option>Guidance</option>
+            <option>Administrative</option>
+            <option>Other</option>
+          </select>
+
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" required placeholder="Short summary">
+
+          <label for="description">Description</label>
+          <textarea id="description" name="description" required placeholder="Describe the concern or problem in detail..."></textarea>
+
+          <button type="submit" class="btn primary">Submit Concern</button>
+        </form>
+      </div>
+    </aside>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>
+
+<script>
+(function () {
+  var chips = document.querySelectorAll('.chip');
+  var rows = document.querySelectorAll('[data-status]');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var f = chip.dataset.filter;
+      rows.forEach(function (row) {
+        row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>

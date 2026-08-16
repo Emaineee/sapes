@@ -1,100 +1,144 @@
-<%- include('partials/header', { user, title: '', path }) %>
+<%- include('partials/header', { user, title: 'Appointments', path }) %>
 
-<main class="container">
-  <section class="hero">
-    <p class="kicker">University Guidance Center</p>
-    <h1>Scheduled Appointments</h1>
-    <p class="muted"><%= user.role === 'admin' ? 'Viewing all appointments (admin).' : 'Viewing your appointments.' %></p>
-  </section>
+<%
+  const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const sched = appointments.filter((a) => a.status === 'scheduled').length;
+  const done = appointments.filter((a) => a.status === 'completed').length;
+  const cancelled = appointments.filter((a) => a.status === 'cancelled').length;
+%>
+
+<main class="container container-wide">
+  <div class="page-head-row">
+    <div>
+      <p class="kicker">University Guidance Center</p>
+      <h1>Scheduled Appointments</h1>
+      <p class="muted"><%= user.role === 'admin' ? 'All appointments across all students — admin view.' : 'Your guidance and counseling appointments.' %></p>
+    </div>
+  </div>
 
   <% if (error) { %>
     <div class="alert error"><%= error %></div>
   <% } %>
 
-  <div class="card">
-    <h2>Book an Appointment</h2>
-    <form method="POST" action="/appointments" class="form-grid">
-      <div>
-        <label for="counselorId">Counselor</label>
-        <select id="counselorId" name="counselorId" required>
-          <option value="">— Select —</option>
-          <% counselors.forEach((c) => { %>
-            <option value="<%= c.id %>"><%= c.name %> — <%= c.title %></option>
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num"><%= appointments.length %></div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= sched %></div>
+      <div class="stat-label">Upcoming</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= done %></div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num"><%= cancelled %></div>
+      <div class="stat-label">Cancelled</div>
+    </div>
+  </section>
+
+  <div class="page-grid">
+    <section class="page-main">
+      <div class="filter-chips" role="group" aria-label="Filter appointments">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="scheduled">Upcoming</button>
+        <button class="chip" data-filter="completed">Completed</button>
+        <button class="chip" data-filter="cancelled">Cancelled</button>
+      </div>
+
+      <% if (appointments.length === 0) { %>
+        <div class="card">
+          <p class="muted">No appointments yet. Book one using the form.</p>
+        </div>
+      <% } else { %>
+        <div class="appt-list">
+          <% appointments.forEach((a) => {
+            const counselor = counselorById(a.counselorId); %>
+            <div class="appt-row" data-status="<%= a.status %>">
+              <div class="appt-when">
+                <div class="appt-date"><%= fmtDate(a.date) %></div>
+                <div class="appt-time"><%= a.time %></div>
+              </div>
+              <div class="appt-main">
+                <div class="appt-purpose"><%= a.purpose %></div>
+                <div class="appt-meta">
+                  <% if (user.role === 'admin') { %><strong><%= a.student %></strong> &middot; <% } %>
+                  <span class="counselor-cell">
+                    <span class="avatar"><%= counselor ? initials(counselor.name) : '?' %></span>
+                    <%= counselor ? counselor.name : 'Unassigned' %>
+                  </span>
+                </div>
+              </div>
+              <div class="appt-status">
+                <span class="badge status-<%= a.status %>"><%= a.status %></span>
+              </div>
+              <% if (user.role === 'admin') { %>
+                <div class="appt-actions">
+                  <% if (a.status === 'scheduled') { %>
+                    <form method="POST" action="/appointments/<%= a.id %>/complete">
+                      <button type="submit" class="btn btn-sm ok">Complete</button>
+                    </form>
+                    <form method="POST" action="/appointments/<%= a.id %>/cancel">
+                      <button type="submit" class="btn btn-sm danger">Cancel</button>
+                    </form>
+                  <% } else { %>
+                    <span class="muted">—</span>
+                  <% } %>
+                </div>
+              <% } %>
+            </div>
           <% }) %>
-        </select>
-      </div>
+        </div>
+      <% } %>
+    </section>
 
-      <div>
-        <label for="date">Date</label>
-        <input type="date" id="date" name="date" required>
-      </div>
-
-      <div>
-        <label for="time">Time</label>
-        <input type="time" id="time" name="time" required>
-      </div>
-
-      <div class="full">
-        <label for="purpose">Purpose</label>
-        <input type="text" id="purpose" name="purpose" placeholder="e.g. Academic advising, career assessment..." >
-      </div>
-
-      <div class="full">
-        <button type="submit" class="btn primary">Schedule Appointment</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="card">
-    <h2>Appointment List</h2>
-    <% if (appointments.length === 0) { %>
-      <p class="muted">No appointments yet. Book one above.</p>
-    <% } else { %>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <% if (user.role === 'admin') { %><th>Student</th><% } %>
-              <th>Counselor</th>
-              <th>Purpose</th>
-              <th>Status</th>
-              <% if (user.role === 'admin') { %><th>Actions</th><% } %>
-            </tr>
-          </thead>
-          <tbody>
-            <% appointments.forEach((a) => {
-              const counselor = counselorById(a.counselorId); %>
-              <tr>
-                <td><%= a.date %></td>
-                <td><%= a.time %></td>
-                <% if (user.role === 'admin') { %><td><%= a.student %></td><% } %>
-                <td><%= counselor ? counselor.name : '—' %></td>
-                <td><%= a.purpose %></td>
-                <td><span class="badge status-<%= a.status %>"><%= a.status %></span></td>
-                <% if (user.role === 'admin') { %>
-                  <td class="actions">
-                    <% if (a.status === 'scheduled') { %>
-                      <form method="POST" action="/appointments/<%= a.id %>/complete">
-                        <button type="submit" class="btn btn-sm ok">Complete</button>
-                      </form>
-                      <form method="POST" action="/appointments/<%= a.id %>/cancel">
-                        <button type="submit" class="btn btn-sm danger">Cancel</button>
-                      </form>
-                    <% } else { %>
-                      <span class="muted">—</span>
-                    <% } %>
-                  </td>
-                <% } %>
-              </tr>
+    <aside class="aside">
+      <div class="card aside-card">
+        <h2>Book an Appointment</h2>
+        <form method="POST" action="/appointments">
+          <label for="counselorId">Counselor</label>
+          <select id="counselorId" name="counselorId" required>
+            <option value="">— Select —</option>
+            <% counselors.forEach((c) => { %>
+              <option value="<%= c.id %>"><%= c.name %> — <%= c.title %></option>
             <% }) %>
-          </tbody>
-        </table>
+          </select>
+
+          <label for="date">Date</label>
+          <input type="date" id="date" name="date" required>
+
+          <label for="time">Time</label>
+          <input type="time" id="time" name="time" required>
+
+          <label for="purpose">Purpose</label>
+          <input type="text" id="purpose" name="purpose" placeholder="e.g. Academic advising, career assessment...">
+
+          <button type="submit" class="btn primary">Schedule Appointment</button>
+        </form>
       </div>
-    <% } %>
+    </aside>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>
+
+<script>
+(function () {
+  var chips = document.querySelectorAll('.chip');
+  var rows = document.querySelectorAll('[data-status]');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var f = chip.dataset.filter;
+      rows.forEach(function (row) {
+        row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>
