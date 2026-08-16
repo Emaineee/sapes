@@ -1,0 +1,14 @@
+<%- include('partials/header', { user, title: '', path }) %>
+
+<main class="container">
+  <h1>Your Profile</h1>
+  <div class="card profile-card">
+    <p><strong>Name:</strong> <%= user.name %></p>
+    <p><strong>Username:</strong> <%= user.username %></p>
+    <p><strong>Role:</strong> <span class="badge role-<%= user.role %>"><%= user.role %></span></p>
+    <p><strong>Session:</strong> only the fields above are stored server-side; no password is kept in the session.</p>
+  </div>
+</main>
+<%- include('partials/footer', { user }) %>
+</body>
+</html>

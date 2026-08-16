@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — RBAC Demo</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="card error-card">
+      <h1>404 — Not Found</h1>
+      <p>That page does not exist.</p>
+      <a class="btn primary" href="/home">Back to Home</a>
+</div>
+</main>
+<%- include('partials/footer', { user: null }) %>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<%- include('partials/header', { user: user || { role: 'none', name: 'Guest' }, title: 'Forbidden', path }) %>
+
+<main class="container">
+  <div class="card error-card">
+    <h1>403 — Forbidden</h1>
+    <p>Your role <strong><%= user ? user.role : 'guest' %></strong> does not grant access to this page.</p>
+    <a class="btn primary" href="/home">Back to Home</a>
+  </div>
+</main>
+<%- include('partials/footer', { user }) %>
+</body>
+</html>

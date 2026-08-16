@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — SAPES | UPHS-DALTA Calamba</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="card login-card">
+    <div class="login-brand">
+      <h1>UPHS-DALTA <em>Calamba</em></h1>
+      <p class="muted">SAPES — Student Academic Performance Evaluation System</p>
+      <p class="muted">Research Portal • College of Engineering</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+
+      <button type="submit" class="btn primary">Sign in</button>
+    </form>
+
+    <div class="demo-hint">
+      <p><strong>admin</strong> / admin123 → admin role</p>
+      <p><strong>user</strong> / user123 → user role</p>
+      <p>New here? <a href="/register">Create an account</a></p>
+    </div>
+  </main>
+</body>
+</html>

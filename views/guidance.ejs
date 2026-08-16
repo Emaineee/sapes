@@ -1,0 +1,30 @@
+<%- include('partials/header', { user, title: '', path }) %>
+
+<main class="container">
+  <section class="hero">
+    <p class="kicker">Student Support Services</p>
+    <h1>University Guidance Center</h1>
+    <p class="muted">Guidance and counseling services for students of the University of Perpetual Help System DALTA – Calamba Campus.</p>
+  </section>
+
+  <div class="cards">
+    <% counselors.forEach((c) => { %>
+      <div class="card counselor-card">
+        <h2><%= c.name %></h2>
+        <p class="counselor-title"><%= c.title %></p>
+        <% if (c.cluster) { %>
+          <p class="muted"><%= c.cluster %></p>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="card highlight">
+    <h2>Need guidance?</h2>
+    <p>Schedule an appointment with a counselor or psychometrician.</p>
+    <a class="btn primary" href="/appointments">Book an Appointment</a>
+  </div>
+</main>
+<%- include('partials/footer', { user }) %>
+</body>
+</html>

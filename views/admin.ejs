@@ -1,0 +1,51 @@
+<%- include('partials/header', { user, title: 'Admin', path }) %>
+
+<main class="container">
+  <section class="hero">
+    <p class="kicker">Administration</p>
+    <h1>Admin Panel</h1>
+    <p class="muted">Protected by <code>requireRole('admin')</code> — manage accounts, appointments, and concerns.</p>
+  </section>
+
+  <div class="card">
+    <h2>User Accounts</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach((u) => { %>
+            <tr>
+              <td><%= u.username %></td>
+              <td><%= u.name %></td>
+              <td><span class="badge role-<%= u.role %>"><%= u.role %></span></td>
+              <td><%= u.created_at %></td>
+              <td class="actions">
+                <% if (u.id === user.id) { %>
+                  <span class="muted">you</span>
+                <% } else { %>
+                  <form method="POST" action="/admin/users/<%= u.id %>/role">
+                    <button type="submit" class="btn btn-sm <%= u.role === 'admin' ? 'danger' : 'ok' %>">
+                      <%= u.role === 'admin' ? 'Demote to user' : 'Promote to admin' %>
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Passwords are stored as bcrypt hashes — they can never be read back.</p>
+  </div>
+</main>
+<%- include('partials/footer', { user }) %>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<%- include('partials/header', { user, title: 'Home', path }) %>
+
+<main class="container">
+  <section class="hero-card">
+    <div class="hero-body">
+      <p class="kicker">College of Engineering • University of Perpetual Help System DALTA – Calamba Campus</p>
+      <h1>Student Academic Performance Evaluation System</h1>
+      <p class="lead">A BSCpE research study (CPE Practice and Design) to design and develop an academic performance evaluation system for the College of Engineering.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="/letter">View Permission Letter</a>
+        <a class="btn outline" href="/appointments">Book an Appointment</a>
+        <a class="btn outline" href="/concerns">Report a Concern</a>
+      </div>
+    </div>
+    <aside class="hero-meta">
+      <p><span class="badge badge-ok">Approved</span></p>
+      <p><strong>Study:</strong> BSCpE • CPE Practice &amp; Design</p>
+      <p><strong>Approval:</strong> June 16, 2025</p>
+      <p><strong>Signed in as:</strong> <%= user.name %></p>
+      <p><strong>Role:</strong> <span class="badge role-<%= user.role %>"><%= user.role %></span></p>
+    </aside>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <h2>About the Study</h2>
+      <p><strong>SAPES</strong> evaluates student academic performance through interviews and surveys with engineering students, faculty members, academic advisers, and program chairs.</p>
+      <p class="muted">All information is treated with strict confidentiality and used solely for academic and research purposes.</p>
+    </div>
+
+    <div class="card">
+      <h2>Your Access</h2>
+      <p>This page is visible to any signed-in user — both <code>admin</code> and <code>user</code> roles.</p>
+      <p class="muted">Role-based access controls which pages you can open and what you can manage.</p>
+    </div>
+
+    <% if (user.role === 'admin') { %>
+      <div class="card highlight">
+        <h2>Admin-only area</h2>
+        <p>You can manage users, appointments, and reported concerns because your role is <code>admin</code>.</p>
+        <a class="btn primary" href="/admin">Open Admin Panel</a>
+      </div>
+    <% } else { %>
+      <div class="card">
+        <h2>Admin area locked</h2>
+        <p>The Admin link is hidden from your nav and visiting <code>/admin</code> directly returns a <strong>403 Forbidden</strong>.</p>
+      </div>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer', { user }) %>
+</body>
+</html>

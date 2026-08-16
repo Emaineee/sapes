@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — SAPES | UPHS-DALTA Calamba</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="card login-card">
+    <div class="login-brand">
+      <h1>Create Account</h1>
+      <p class="muted">Join the SAPES research portal</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/register">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}" required autofocus>
+
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" autocomplete="name" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password" minlength="6" required>
+
+      <label for="confirm">Confirm Password</label>
+      <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="6" required>
+
+      <button type="submit" class="btn primary">Create Account</button>
+    </form>
+
+    <div class="demo-hint">
+      <p>Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </main>
+</body>
+</html>

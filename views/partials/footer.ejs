@@ -1,0 +1,18 @@
+<footer class="site-footer">
+  <div class="footer-brand">
+    <strong>UPHS-DALTA Calamba</strong>
+    <span>SAPES Research Portal • College of Engineering</span>
+  </div>
+  <nav class="footer-links">
+    <a href="/home">Home</a>
+    <a href="/letter">Permission Letter</a>
+    <a href="/guidance">Guidance Center</a>
+    <a href="/appointments">Appointments</a>
+    <a href="/concerns">Concerns</a>
+    <a href="/profile">Profile</a>
+    <% if (user && user.role === 'admin') { %>
+      <a href="/admin">Admin</a>
+    <% } %>
+  </nav>
+  <p class="footer-address">Brgy. Paciano Rizal, Calamba City, Laguna, 4027 Philippines • Tel. No.: (049) 834-1159 • www.perpetualdalta.edu.ph</p>
+</footer>
