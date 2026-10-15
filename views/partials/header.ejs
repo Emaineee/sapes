@@ -12,8 +12,11 @@
 <body>
   <nav>
     <span class="brand">
-      <span class="brand-name">Guide<em>Track</em></span>
-      <span class="brand-sub">Guidance Management System • UPHS-DALTA Calamba</span>
+      <span class="brand-mark">GT</span>
+      <span class="brand-text">
+        <span class="brand-name">Guide<em>Track</em></span>
+        <span class="brand-sub">Guidance Management System &bull; UPHS-DALTA Calamba</span>
+      </span>
     </span>
     <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -46,6 +49,10 @@
         </a>
       <% } %>
     </div>
+    <span class="nav-user">
+      <span class="avatar"><%= user.firstName ? user.firstName[0].toUpperCase() : 'U' %></span>
+      <span><%= user.firstName || user.name %></span>
+    </span>
     <form method="POST" action="/logout">
       <button type="submit" class="btn subtle">Sign out</button>
     </form>
