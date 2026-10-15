@@ -3,14 +3,196 @@
 <%
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const roles = ['ADMIN', 'COUNSELOR', 'STUDENT', 'FACULTY'];
+  const maxOf = (rows) => Math.max(1, ...rows.map((r) => r.count));
+  const pct = (count, max) => Math.max(4, Math.round((count / max) * 100));
+  const barColor = (key) => {
+    const k = String(key).toUpperCase();
+    if (['APPROVED', 'COMPLETED', 'RESOLVED', 'ADDRESSED'].includes(k)) return 'green';
+    if (['PENDING', 'SUBMITTED', 'OPEN'].includes(k)) return 'gold';
+    if (['IN_PROGRESS', 'UNDER_REVIEW', 'RESCHEDULED'].includes(k)) return 'blue';
+    return '';
+  };
 %>
 
 <main class="container page-shell">
   <section class="page-hero">
     <p class="kicker">Administration</p>
     <h1>Admin Panel</h1>
-    <p class="lead">Manage user accounts and roles across the GuideTrack system.</p>
+    <p class="lead">Analytics, accounts, and system oversight for GuideTrack.</p>
   </section>
+
+  <% if (!stats) { %>
+    <div class="panel">
+      <div class="empty-state">
+        <strong>Analytics unavailable</strong>
+        <p>Could not reach the statistics service. User management below still works.</p>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="section-head">
+      <h2>Overview</h2>
+    </div>
+
+    <section class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num"><%= stats.users.byRole.STUDENT || 0 %></div>
+        <div class="stat-label">Students</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><%= stats.appointments.total %></div>
+        <div class="stat-label">Appointments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><%= stats.appointments.byStatus.PENDING || 0 %></div>
+        <div class="stat-label">Pending Approval</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><%= stats.concerns.byStatus.OPEN || 0 %></div>
+        <div class="stat-label">Open Concerns</div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel" style="margin-top:0;">
+        <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+        <h3>Appointments by status</h3>
+        <% const apptMax = maxOf(Object.entries(stats.appointments.byStatus).map(([s, c]) => ({ count: c }))); %>
+        <% Object.entries(stats.appointments.byStatus).forEach(([status, count]) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= status %></span>
+            <span class="bar-track"><span class="bar-fill <%= barColor(status) %>" style="width:<%= pct(count, apptMax) %>%;"></span></span>
+            <span class="bar-count"><%= count %></span>
+          </div>
+        <% }) %>
+        <% if (Object.keys(stats.appointments.byStatus).length === 0) { %>
+          <p class="muted">No appointments yet.</p>
+        <% } %>
+      </div>
+
+      <div class="panel" style="margin-top:0;">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg></span>
+        <h3>Appointments by student department</h3>
+        <% const deptMax = maxOf(stats.appointments.byDepartment); %>
+        <% stats.appointments.byDepartment.forEach((row) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= row.department %></span>
+            <span class="bar-track"><span class="bar-fill" style="width:<%= pct(row.count, deptMax) %>%;"></span></span>
+            <span class="bar-count"><%= row.count %></span>
+          </div>
+        <% }) %>
+        <% if (stats.appointments.byDepartment.length === 0) { %>
+          <p class="muted">No appointments yet.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C1 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3.5C14 6 15.5 5 17.5 5 21 5 23 8.5 21.5 12 19 16.5 12 21 12 21z"/></svg></span>
+        <h3>Counselor workload</h3>
+        <% const counMax = maxOf(stats.appointments.byCounselor); %>
+        <% stats.appointments.byCounselor.forEach((row) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= row.name %></span>
+            <span class="bar-track"><span class="bar-fill blue" style="width:<%= pct(row.count, counMax) %>%;"></span></span>
+            <span class="bar-count"><%= row.count %></span>
+          </div>
+        <% }) %>
+        <% if (stats.appointments.byCounselor.length === 0) { %>
+          <p class="muted">No appointments yet.</p>
+        <% } %>
+      </div>
+
+      <div class="panel">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg></span>
+        <h3>Appointments &mdash; last 30 days</h3>
+        <% const trendMax = maxOf(stats.appointments.last30Days); %>
+        <div class="trend">
+          <% stats.appointments.last30Days.forEach((d) => { %>
+            <div class="trend-bar" style="height:<%= pct(d.count, trendMax) %>%;" title="<%= d.date %>: <%= d.count %>"></div>
+          <% }) %>
+        </div>
+        <div class="trend-labels">
+          <span><%= stats.appointments.last30Days[0].date %></span>
+          <span><%= stats.appointments.last30Days[stats.appointments.last30Days.length - 1].date %></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4c6-3 8 3 14 0v9c-6 3-8-3-14 0"/></svg></span>
+        <h3>Concerns by category</h3>
+        <% const catMax = maxOf(stats.concerns.byCategory); %>
+        <% stats.concerns.byCategory.forEach((row) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= row.category %></span>
+            <span class="bar-track"><span class="bar-fill gold" style="width:<%= pct(row.count, catMax) %>%;"></span></span>
+            <span class="bar-count"><%= row.count %></span>
+          </div>
+        <% }) %>
+        <% if (stats.concerns.byCategory.length === 0) { %>
+          <p class="muted">No concerns reported yet.</p>
+        <% } %>
+        <div class="section-head" style="margin-top:1.25rem;">
+          <h2 style="font-size:1rem;color:var(--maroon-dark);">By status</h2>
+        </div>
+        <% const conMax = maxOf(Object.entries(stats.concerns.byStatus).map(([s, c]) => ({ count: c }))); %>
+        <% Object.entries(stats.concerns.byStatus).forEach(([status, count]) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= status %></span>
+            <span class="bar-track"><span class="bar-fill <%= barColor(status) %>" style="width:<%= pct(count, conMax) %>%;"></span></span>
+            <span class="bar-count"><%= count %></span>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="panel">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></span>
+        <h3>Referrals by status</h3>
+        <% const refMax = maxOf(Object.entries(stats.referrals.byStatus).map(([s, c]) => ({ count: c }))); %>
+        <% Object.entries(stats.referrals.byStatus).forEach(([status, count]) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= status %></span>
+            <span class="bar-track"><span class="bar-fill <%= barColor(status) %>" style="width:<%= pct(count, refMax) %>%;"></span></span>
+            <span class="bar-count"><%= count %></span>
+          </div>
+        <% }) %>
+        <% if (Object.keys(stats.referrals.byStatus).length === 0) { %>
+          <p class="muted">No referrals yet.</p>
+        <% } %>
+        <div class="section-head" style="margin-top:1.25rem;">
+          <h2 style="font-size:1rem;color:var(--maroon-dark);">Users by role</h2>
+        </div>
+        <% const roleMax = maxOf(Object.entries(stats.users.byRole).map(([s, c]) => ({ count: c }))); %>
+        <% Object.entries(stats.users.byRole).forEach(([role, count]) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= role %></span>
+            <span class="bar-track"><span class="bar-fill" style="width:<%= pct(count, roleMax) %>%;"></span></span>
+            <span class="bar-count"><%= count %></span>
+          </div>
+        <% }) %>
+        <p class="muted" style="margin-top:1rem;">Counseling sessions recorded: <strong><%= stats.sessions.total %></strong></p>
+      </div>
+    </section>
+
+    <% if (stats.appointments.topStudents.length > 0) { %>
+      <div class="section-head">
+        <h2>Most active students</h2>
+        <p class="muted">By appointment count</p>
+      </div>
+      <div class="panel" style="margin-top:0;">
+        <% const topMax = maxOf(stats.appointments.topStudents); %>
+        <% stats.appointments.topStudents.forEach((row) => { %>
+          <div class="bar-row">
+            <span class="bar-label"><%= row.name %></span>
+            <span class="bar-track"><span class="bar-fill" style="width:<%= pct(row.count, topMax) %>%;"></span></span>
+            <span class="bar-count"><%= row.count %></span>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  <% } %>
 
   <div class="section-head">
     <h2>User accounts</h2>

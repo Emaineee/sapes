@@ -1109,6 +1109,34 @@ body.density-compact .panel { padding: 1.1rem 1.25rem; }
 body.density-compact .list-row { padding: 0.7rem 0.9rem; }
 body.density-compact .section-head { margin: 1.25rem 0 0.75rem; }
 
+.bar-row { display: flex; align-items: center; gap: 0.9rem; margin: 0.65rem 0; }
+.bar-label { min-width: 170px; max-width: 220px; font-size: 0.88rem; font-weight: 600; color: var(--maroon-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; height: 12px; background: #f3e9df; border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--maroon), var(--maroon-dark)); transition: width 0.5s ease-out; }
+.bar-fill.gold { background: linear-gradient(90deg, var(--yellow-dark), var(--yellow)); }
+.bar-fill.green { background: linear-gradient(90deg, #15803d, #166534); }
+.bar-fill.blue { background: linear-gradient(90deg, #1d4ed8, #1e40af); }
+.bar-fill.gray { background: linear-gradient(90deg, #9ca3af, #6b7280); }
+.bar-count { min-width: 44px; text-align: right; font-weight: 800; color: var(--maroon-dark); font-size: 0.95rem; }
+
+.trend { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding-top: 0.5rem; }
+.trend-bar { flex: 1; min-width: 0; background: linear-gradient(180deg, var(--maroon), var(--maroon-dark)); border-radius: 4px 4px 0 0; min-height: 3px; position: relative; }
+.trend-bar[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--maroon-deep);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 5;
+}
+.trend-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-top: 0.4rem; }
+
 .counselor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
 @media (max-width: 1200px) { .counselor-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 720px) { .counselor-grid { grid-template-columns: 1fr; } }

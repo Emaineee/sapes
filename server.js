@@ -371,10 +371,13 @@ app.get('/settings', requireAuth, requireConsent, (req, res) => {
 
 app.get('/admin', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
   try {
-    const users = await apiRequest('/users', { token: req.session.user.token });
-    res.render('admin', { user: req.session.user, users });
+    const [users, stats] = await Promise.all([
+      apiRequest('/users', { token: req.session.user.token }),
+      apiRequest('/stats', { token: req.session.user.token }),
+    ]);
+    res.render('admin', { user: req.session.user, users, stats });
   } catch {
-    res.render('admin', { user: req.session.user, users: [] });
+    res.render('admin', { user: req.session.user, users: [], stats: null });
   }
 });
 
