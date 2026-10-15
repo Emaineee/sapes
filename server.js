@@ -351,6 +351,10 @@ app.get('/profile', requireAuth, requireConsent, (req, res) => {
   res.render('profile', { user: req.session.user });
 });
 
+app.get('/settings', requireAuth, requireConsent, (req, res) => {
+  res.render('settings', { user: req.session.user });
+});
+
 app.get('/admin', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
   try {
     const users = await apiRequest('/users', { token: req.session.user.token });

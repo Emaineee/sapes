@@ -2,38 +2,89 @@
 
 <%
   const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  const roleLabel = { admin: 'Administrator', counselor: 'Guidance Counselor', student: 'Student', faculty: 'Faculty Member' };
+  const roleLabels = { admin: 'Administrator', counselor: 'Guidance Counselor', student: 'Student', faculty: 'Faculty Member', user: 'Member' };
 %>
 
-<main class="container">
-  <div class="card">
-    <div class="profile-header">
-      <span class="avatar"><%= initials(user.name) %></span>
-      <div class="profile-info">
-        <h1><%= user.name %></h1>
-        <p class="muted"><%= roleLabel[user.role] || user.role %></p>
-      </div>
+<main class="container page-shell">
+  <section class="profile-banner">
+    <span class="avatar"><%= initials(user.name) %></span>
+    <div>
+      <h1><%= user.name %></h1>
+      <p class="muted"><%= user.email %> &middot; <span class="badge role-<%= user.role %>"><%= roleLabels[user.role] || user.role %></span></p>
     </div>
-    <div class="profile-grid">
-      <div class="profile-field">
-        <div class="profile-field-label">Full Name</div>
-        <div class="profile-field-value"><%= user.name %></div>
-      </div>
-      <div class="profile-field">
-        <div class="profile-field-label">Email</div>
-        <div class="profile-field-value"><%= user.email %></div>
-      </div>
-      <div class="profile-field">
-        <div class="profile-field-label">Role</div>
-        <div class="profile-field-value"><span class="badge role-<%= user.role %>"><%= user.role %></span></div>
-      </div>
-      <div class="profile-field">
-        <div class="profile-field-label">User ID</div>
-        <div class="profile-field-value"><%= user.id %></div>
-      </div>
-    </div>
+    <a class="btn gold" href="/settings">Account Settings</a>
+  </section>
+
+  <div class="section-head">
+    <h2>Account details</h2>
   </div>
+
+  <section class="detail-grid">
+    <div class="profile-field">
+      <div class="profile-field-label">Full Name</div>
+      <div class="profile-field-value"><%= user.name %></div>
+    </div>
+    <div class="profile-field">
+      <div class="profile-field-label">Email</div>
+      <div class="profile-field-value"><%= user.email %></div>
+    </div>
+    <div class="profile-field">
+      <div class="profile-field-label">Role</div>
+      <div class="profile-field-value"><span class="badge role-<%= user.role %>"><%= roleLabels[user.role] || user.role %></span></div>
+    </div>
+    <div class="profile-field">
+      <div class="profile-field-label">User ID</div>
+      <div class="profile-field-value"><%= user.id %></div>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <h2>Shortcuts</h2>
+  </div>
+
+  <section class="quick-links">
+    <a class="quick-link" href="/appointments">
+      <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+      <span><strong>My Appointments</strong><span>View &amp; manage sessions</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a class="quick-link" href="/concerns">
+      <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4c6-3 8 3 14 0v9c-6 3-8-3-14 0"/></svg></span>
+      <span><strong>My Concerns</strong><span>Track submitted reports</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a class="quick-link" href="/settings">
+      <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8 7 17M17 7l2.8-2.8"/></svg></span>
+      <span><strong>Settings</strong><span>Preferences &amp; account</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <% if (user.role === 'admin') { %>
+      <a class="quick-link" href="/admin">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg></span>
+        <span><strong>Admin Panel</strong><span>Manage the system</span></span>
+        <span class="arrow">&rarr;</span>
+      </a>
+    <% } else { %>
+      <a class="quick-link" href="/guidance">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C1 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3.5C14 6 15.5 5 17.5 5 21 5 23 8.5 21.5 12 19 16.5 12 21 12 21z"/></svg></span>
+        <span><strong>Counselors</strong><span>Meet the team</span></span>
+        <span class="arrow">&rarr;</span>
+      </a>
+    <% } %>
+  </section>
 </main>
 <%- include('partials/footer', { user }) %>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+});
+</script>
 </body>
 </html>

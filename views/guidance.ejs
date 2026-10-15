@@ -1,34 +1,43 @@
 <%- include('partials/header', { user, title: 'Guidance Center', path }) %>
 
-<main class="container">
-  <div class="page-head">
+<main class="container page-shell">
+  <section class="page-hero">
     <p class="kicker">Guidance Center</p>
-    <h1>Our Counselors</h1>
-    <p class="muted">Meet the guidance team at UPHSD Calamba.</p>
+    <h1>Meet the Counselors</h1>
+    <p class="lead">The guidance team at UPHSD Calamba &mdash; book a session with the counselor assigned to your cluster.</p>
+    <div class="page-hero-actions">
+      <a class="btn gold" href="/appointments">Book an Appointment</a>
+      <a class="btn ghost-light" href="/concerns">Report a Concern</a>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <h2>Our team</h2>
+    <p class="muted"><%= counselors.length %> counselors available</p>
   </div>
 
-  <div class="cards">
+  <div class="counselor-grid">
     <% counselors.forEach((c) => { %>
-      <div class="card">
-        <div class="counselor-cell" style="margin-bottom: 0.75rem;">
-          <span class="avatar"><%= c.name.split(' ').map(w => w[0]).slice(0,2).join('') %></span>
-          <div>
-            <div class="counselor-title"><%= c.name %></div>
-            <div class="muted" style="font-size: 0.82rem;"><%= c.title %></div>
-          </div>
-        </div>
+      <div class="counselor-card">
+        <span class="avatar"><%= c.name.split(' ').map(w => w[0]).slice(0,2).join('') %></span>
+        <div class="counselor-name"><%= c.name %></div>
+        <div class="counselor-role"><%= c.title %></div>
         <% if (c.cluster) { %>
-          <p class="muted" style="font-size: 0.85rem;"><%= c.cluster %></p>
+          <p class="counselor-cluster"><%= c.cluster %></p>
         <% } %>
         <a class="btn btn-sm outline" href="/appointments">Book Appointment</a>
       </div>
     <% }) %>
   </div>
 
-  <div class="card" style="margin-top: 1.5rem;">
+  <div class="section-head">
     <h2>Announcements</h2>
-    <p class="muted">Stay updated with the latest from the guidance office.</p>
-    <p class="muted">Announcements will appear here once posted by the guidance team.</p>
+  </div>
+
+  <div class="panel">
+    <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+    <h3>Stay updated</h3>
+    <p class="muted">Announcements from the guidance office will appear here once posted by the guidance team.</p>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>

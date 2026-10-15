@@ -1,0 +1,151 @@
+<%- include('partials/header', { user, title: 'Settings', path }) %>
+
+<%
+  const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const roleLabels = { admin: 'Administrator', counselor: 'Guidance Counselor', student: 'Student', faculty: 'Faculty Member', user: 'Member' };
+%>
+
+<main class="container page-shell">
+  <section class="page-hero">
+    <p class="kicker">Account</p>
+    <h1>Settings</h1>
+    <p class="lead">Manage your preferences and account. Signed in as <%= user.name %> (<%= user.email %>).</p>
+  </section>
+
+  <div class="split">
+    <div>
+      <div class="panel" style="margin-top:0;">
+        <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <h3>Notifications</h3>
+        <div class="setting-row">
+          <div class="setting-row-main">
+            <strong>GuideTrack Assistant</strong>
+            <p>Show the floating chat button on every page.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="pref-chat" checked><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-main">
+            <strong>Appointment reminders</strong>
+            <p>See status banners and updates for your sessions.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="pref-reminders" checked><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-main">
+            <strong>Announcements</strong>
+            <p>Surface new posts from the guidance office on the home page.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="pref-announce" checked><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8 7 17M17 7l2.8-2.8"/></svg></span>
+        <h3>Appearance</h3>
+        <div class="setting-row">
+          <div class="setting-row-main">
+            <strong>Density</strong>
+            <p>Comfortable spacing or a compact layout.</p>
+          </div>
+          <div class="seg" role="group" aria-label="Density">
+            <button type="button" id="density-comfy" class="active">Comfortable</button>
+            <button type="button" id="density-compact">Compact</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="danger-zone">
+        <strong>Need to deactivate your account?</strong>
+        <p class="muted" style="margin:0.4rem 0 0;">Contact the guidance office or an administrator. Account changes are handled by the admin team to protect student records.</p>
+      </div>
+    </div>
+
+    <aside class="aside">
+      <div class="card aside-card" style="margin-top:0;">
+        <div class="profile-header">
+          <span class="avatar"><%= initials(user.name) %></span>
+          <div class="profile-info">
+            <h1 style="font-size:1.25rem;"><%= user.name %></h1>
+            <p class="muted"><%= roleLabels[user.role] || user.role %></p>
+          </div>
+        </div>
+        <div class="profile-grid" style="grid-template-columns:1fr;">
+          <div class="profile-field">
+            <div class="profile-field-label">Email</div>
+            <div class="profile-field-value"><%= user.email %></div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-field-label">User ID</div>
+            <div class="profile-field-value"><%= user.id %></div>
+          </div>
+        </div>
+        <a class="btn outline" href="/profile" style="display:block;text-align:center;">View Full Profile</a>
+        <form method="POST" action="/logout">
+          <button type="submit" class="btn danger" style="width:100%;">Sign Out</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+</main>
+<%- include('partials/footer', { user }) %>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+
+  function loadPref(key, fallback) {
+    try {
+      var v = localStorage.getItem(key);
+      return v === null ? fallback : v === '1';
+    } catch (e) { return fallback; }
+  }
+  function savePref(key, on) {
+    try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) {}
+  }
+  function applyChatPref() {
+    var btn = document.querySelector('.chat-toggle');
+    if (!btn) return;
+    btn.style.display = loadPref('gt-chat', true) ? '' : 'none';
+  }
+
+  var chatBox = document.getElementById('pref-chat');
+  var remBox = document.getElementById('pref-reminders');
+  var annBox = document.getElementById('pref-announce');
+  if (chatBox) {
+    chatBox.checked = loadPref('gt-chat', true);
+    chatBox.addEventListener('change', function () { savePref('gt-chat', chatBox.checked); applyChatPref(); });
+  }
+  if (remBox) {
+    remBox.checked = loadPref('gt-reminders', true);
+    remBox.addEventListener('change', function () { savePref('gt-reminders', remBox.checked); });
+  }
+  if (annBox) {
+    annBox.checked = loadPref('gt-announce', true);
+    annBox.addEventListener('change', function () { savePref('gt-announce', annBox.checked); });
+  }
+  applyChatPref();
+
+  var comfy = document.getElementById('density-comfy');
+  var compact = document.getElementById('density-compact');
+  function setDensity(mode) {
+    try { localStorage.setItem('gt-density', mode); } catch (e) {}
+    document.body.classList.toggle('density-compact', mode === 'compact');
+    if (comfy) comfy.classList.toggle('active', mode !== 'compact');
+    if (compact) compact.classList.toggle('active', mode === 'compact');
+  }
+  var saved = 'comfortable';
+  try { saved = localStorage.getItem('gt-density') || 'comfortable'; } catch (e) {}
+  setDensity(saved);
+  if (comfy) comfy.addEventListener('click', function () { setDensity('comfortable'); });
+  if (compact) compact.addEventListener('click', function () { setDensity('compact'); });
+});
+</script>
+</body>
+</html>

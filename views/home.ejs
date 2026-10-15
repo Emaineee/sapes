@@ -2,63 +2,101 @@
 
 <%
   const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const roleLabels = { admin: 'Administrator', counselor: 'Guidance Counselor', student: 'Student', faculty: 'Faculty Member', user: 'Member' };
 %>
 
-<main class="container">
-  <section class="dashboard-welcome">
-    <span class="avatar avatar-lg"><%= initials(user.name) %></span>
-    <div class="dashboard-welcome-text">
-      <h2>Welcome back, <%= user.firstName %></h2>
-      <p><%= user.role === 'admin' ? 'Administrator' : user.role === 'counselor' ? 'Guidance Counselor' : user.role === 'faculty' ? 'Faculty Member' : 'Student' %> • GuideTrack</p>
+<main class="container page-shell">
+  <section class="page-hero">
+    <p class="kicker">University of Perpetual Help System DALTA &ndash; Calamba Campus</p>
+    <h1>Welcome back, <%= user.firstName %></h1>
+    <p class="lead">GuideTrack centralizes guidance services &mdash; appointments, counseling records, announcements, and secure communication between students and the guidance office.</p>
+    <div class="page-hero-actions">
+      <a class="btn gold" href="/appointments">Book an Appointment</a>
+      <a class="btn ghost-light" href="/concerns">Report a Concern</a>
+      <a class="btn ghost-light" href="/guidance">Meet the Counselors</a>
     </div>
   </section>
 
-  <section class="hero-card">
-    <div class="hero-body">
-      <p class="kicker">Guidance Management System • University of Perpetual Help System DALTA – Calamba Campus</p>
-      <h1>GuideTrack</h1>
-      <p class="lead">A guidance management system streamlining counseling appointments, records, and communication for UPHSD Calamba.</p>
-      <div class="hero-cta">
-        <a class="btn primary" href="/letter">View Permission Letter</a>
-        <a class="btn outline" href="/appointments">Book an Appointment</a>
-        <a class="btn outline" href="/concerns">Report a Concern</a>
-      </div>
-    </div>
-    <aside class="hero-meta">
-      <p><span class="badge badge-ok">Approved</span></p>
-      <p><strong>Study:</strong> BSCpE • CPE Practice & Design</p>
-      <p><strong>Approval:</strong> June 16, 2025</p>
-      <p><strong>Signed in as:</strong> <%= user.name %></p>
-      <p><strong>Role:</strong> <span class="badge role-<%= user.role %>"><%= user.role %></span></p>
-    </aside>
+  <div class="section-head">
+    <h2>Quick actions</h2>
+    <p class="muted">Signed in as <%= user.name %> &middot; <span class="badge role-<%= user.role %>"><%= roleLabels[user.role] || user.role %></span></p>
+  </div>
+
+  <section class="quick-links">
+    <a class="quick-link" href="/appointments">
+      <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+      <span><strong>Appointments</strong><span>Schedule &amp; track sessions</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a class="quick-link" href="/concerns">
+      <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4c6-3 8 3 14 0v9c-6 3-8-3-14 0"/></svg></span>
+      <span><strong>Concerns</strong><span>Submit &amp; follow up</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a class="quick-link" href="/guidance">
+      <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C1 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3.5C14 6 15.5 5 17.5 5 21 5 23 8.5 21.5 12 19 16.5 12 21 12 21z"/></svg></span>
+      <span><strong>Guidance Center</strong><span>Counselors &amp; updates</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a class="quick-link" href="/letter">
+      <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></span>
+      <span><strong>Permission Letter</strong><span>Research authorization</span></span>
+      <span class="arrow">&rarr;</span>
+    </a>
   </section>
 
-  <section class="cards">
-    <div class="card">
-      <h2>About the System</h2>
-      <p><strong>GuideTrack</strong> provides a centralized platform for guidance services — appointment scheduling, counseling records, announcements, and secure communication between students and the guidance office.</p>
-      <p class="muted">All information is treated with strict confidentiality and used solely for academic, guidance, and research purposes.</p>
-    </div>
+  <div class="section-head">
+    <h2>About the system</h2>
+  </div>
 
-    <div class="card">
-      <h2>Your Access</h2>
-      <p>This page is visible to any signed-in user. Role-based access controls which pages you can open and what you can manage.</p>
-      <p class="muted">Your current role is <span class="badge role-<%= user.role %>"><%= user.role %></span></p>
+  <section class="grid-3">
+    <div class="panel panel-top-maroon">
+      <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg></span>
+      <h3>Confidential by design</h3>
+      <p>All information is treated with strict confidentiality and used solely for academic, guidance, and research purposes.</p>
     </div>
-
+    <div class="panel panel-top-gold">
+      <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg></span>
+      <h3>Role-based access</h3>
+      <p>Your current role is <span class="badge role-<%= user.role %>"><%= roleLabels[user.role] || user.role %></span>. Access controls decide which pages you can open and what you can manage.</p>
+    </div>
     <% if (user.role === 'admin') { %>
-      <div class="card highlight">
-        <h2>Admin Panel</h2>
-        <p>You can manage users, appointments, and reported concerns because your role is <code>admin</code>.</p>
+      <div class="panel panel-top-maroon">
+        <span class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+        <h3>Admin panel</h3>
+        <p>Manage users, appointments, and reported concerns across the system.</p>
         <a class="btn primary" href="/admin">Open Admin Panel</a>
       </div>
     <% } else { %>
-      <div class="card">
-        <h2>Need Help?</h2>
-        <p>Book an appointment with a guidance counselor or report a concern through the system.</p>
+      <div class="panel panel-top-gold">
+        <span class="panel-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <h3>Need someone to talk to?</h3>
+        <p>Book a session with a guidance counselor or ask the GuideTrack Assistant anytime.</p>
         <a class="btn outline" href="/guidance">View Counselors</a>
       </div>
     <% } %>
+  </section>
+
+  <div class="section-head">
+    <h2>How it works</h2>
+  </div>
+
+  <section class="steps">
+    <div class="panel">
+      <span class="step-num">1</span>
+      <h3>Book a session</h3>
+      <p>Pick a counselor, date, and time. The guidance office reviews and confirms your request.</p>
+    </div>
+    <div class="panel">
+      <span class="step-num">2</span>
+      <h3>Meet your counselor</h3>
+      <p>Attend your session. Notes are recorded securely and kept confidential.</p>
+    </div>
+    <div class="panel">
+      <span class="step-num">3</span>
+      <h3>Track &amp; follow up</h3>
+      <p>Monitor appointment status and report concerns anytime through the system.</p>
+    </div>
   </section>
 </main>
 <%- include('partials/footer', { user }) %>

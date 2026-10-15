@@ -4,14 +4,15 @@
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 %>
 
-<main class="container container-wide">
-  <div class="page-head-row">
-    <div>
-      <p class="kicker">Student Concerns</p>
-      <h1>Your Concerns</h1>
-      <p class="muted"><%= user.role === 'admin' || user.role === 'counselor' ? 'All reported concerns.' : 'Track and report your concerns.' %></p>
+<main class="container page-shell">
+  <section class="page-hero">
+    <p class="kicker">Student Welfare</p>
+    <h1>Concerns</h1>
+    <p class="lead"><%= user.role === 'admin' || user.role === 'counselor' ? 'Review reported concerns and update their status.' : 'Report academic, personal, or wellness concerns and track their progress.' %></p>
+    <div class="page-hero-actions">
+      <a class="btn gold" href="#report">Report a Concern</a>
     </div>
-  </div>
+  </section>
 
   <% if (error) { %>
     <div class="alert error"><%= error %></div>
@@ -36,7 +37,7 @@
     </div>
   </section>
 
-  <div class="page-grid">
+  <div class="split">
     <section class="page-main">
       <% if (concerns.length === 0) { %>
         <div class="card">
@@ -75,7 +76,7 @@
     </section>
 
     <aside class="aside">
-      <div class="card aside-card">
+      <div class="card aside-card" id="report">
         <h2>Report a Concern</h2>
         <form method="POST" action="/concerns">
           <label for="category">Category</label>
