@@ -116,7 +116,7 @@ app.get('/register', (req, res) => {
 
 app.post('/register', async (req, res) => {
   let error = null;
-  const { email, password, firstName, lastName } = req.body;
+  const { email, password, firstName, lastName, role, studentId, department } = req.body;
   const confirm = req.body.confirm || '';
 
   if (!email || !firstName || !lastName || !password) error = 'Please fill in all fields.';
@@ -128,7 +128,7 @@ app.post('/register', async (req, res) => {
   try {
     const data = await apiRequest('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, firstName, lastName, role: 'STUDENT' }),
+      body: JSON.stringify({ email, password, firstName, lastName, role, studentId, department }),
     });
     req.session.user = {
       id: data.user.id,
