@@ -2,8 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const { DatabaseSync } = require('node:sqlite');
+const { apiRequest } = require('./api-client');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,102 +12,6 @@ const sessionSecret =
 if (!process.env.SESSION_SECRET) {
   console.warn('WARNING: SESSION_SECRET not set — sessions will reset on restart.');
 }
-
-const db = new DatabaseSync(path.join(__dirname, 'data.db'));
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',
-    created_at TEXT NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS consents (
-    user_id INTEGER PRIMARY KEY,
-    agreed_at TEXT NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS appointments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student TEXT NOT NULL,
-    counselor_id INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    time TEXT NOT NULL,
-    purpose TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'scheduled',
-    created_at TEXT NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS concerns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student TEXT NOT NULL,
-    category TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'open',
-    date TEXT NOT NULL
-  );
-`);
-
-const insertUser = db.prepare('INSERT INTO users (username, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)');
-const getUserByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
-const getUserById = db.prepare('SELECT * FROM users WHERE id = ?');
-const getAllUsers = db.prepare('SELECT id, username, name, role, created_at FROM users ORDER BY id');
-const updateUserRole = db.prepare('UPDATE users SET role = ? WHERE id = ?');
-
-const hasConsented = db.prepare('SELECT agreed_at FROM consents WHERE user_id = ?');
-const recordConsent = db.prepare('INSERT OR IGNORE INTO consents (user_id, agreed_at) VALUES (?, ?)');
-
-const insertAppointment = db.prepare('INSERT INTO appointments (student, counselor_id, date, time, purpose, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
-const getAppointmentsAll = db.prepare('SELECT * FROM appointments ORDER BY date, time');
-const getAppointmentsByStudent = db.prepare('SELECT * FROM appointments WHERE student = ? ORDER BY date, time');
-const getAppointmentById = db.prepare('SELECT * FROM appointments WHERE id = ?');
-const updateAppointmentStatus = db.prepare('UPDATE appointments SET status = ? WHERE id = ?');
-
-const insertConcern = db.prepare('INSERT INTO concerns (student, category, title, description, status, date) VALUES (?, ?, ?, ?, ?, ?)');
-const getConcernsAll = db.prepare('SELECT * FROM concerns ORDER BY id DESC');
-const getConcernsByStudent = db.prepare('SELECT * FROM concerns WHERE student = ? ORDER BY id DESC');
-const getConcernById = db.prepare('SELECT * FROM concerns WHERE id = ?');
-const updateConcernStatus = db.prepare('UPDATE concerns SET status = ? WHERE id = ?');
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-function seedIfEmpty() {
-  const { n } = db.prepare('SELECT COUNT(*) AS n FROM users').get();
-  if (n > 0) return;
-  const now = today();
-  insertUser.run('admin', 'Alice Admin', bcrypt.hashSync('admin123', 10), 'admin', now);
-  insertUser.run('user', 'Bob User', bcrypt.hashSync('user123', 10), 'user', now);
-}
-seedIfEmpty();
-
-const COUNSELORS = [
-  {
-    id: 1,
-    name: 'Ma. Clarissn H. Cardino, REC, RPm',
-    title: 'Guidance Coordinator',
-    cluster: 'Guidance Counselor – Allied Health and Business Clusters'
-  },
-  {
-    id: 2,
-    name: 'Anne Gelp B. Vanguardia, RC, RPm',
-    title: 'Guidance Counselor',
-    cluster: 'Technology and HUMSS Cluster'
-  },
-  {
-    id: 3,
-    name: 'Alodia M. Endrinal',
-    title: 'Guidance Associate',
-    cluster: null
-  },
-  {
-    id: 4,
-    name: 'Brian Nickie B. Guevarra, RPm',
-    title: 'Psychometrician',
-    cluster: null
-  }
-];
-
-const counselorById = (id) => COUNSELORS.find((c) => c.id === id);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -141,9 +44,38 @@ function requireRole(...roles) {
 
 function requireConsent(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
-  if (hasConsented.get(req.session.user.id)) return next();
+  if (req.session.user.hasConsented) return next();
   res.redirect('/nda');
 }
+
+const COUNSELORS = [
+  {
+    id: 1,
+    name: 'Ma. Clarissn H. Cardino, REC, RPm',
+    title: 'Guidance Coordinator',
+    cluster: 'Guidance Counselor – Allied Health and Business Clusters'
+  },
+  {
+    id: 2,
+    name: 'Anne Gelp B. Vanguardia, RC, RPm',
+    title: 'Guidance Counselor',
+    cluster: 'Technology and HUMSS Cluster'
+  },
+  {
+    id: 3,
+    name: 'Alodia M. Endrinal',
+    title: 'Guidance Associate',
+    cluster: null
+  },
+  {
+    id: 4,
+    name: 'Brian Nickie B. Guevarra, RPm',
+    title: 'Psychometrician',
+    cluster: null
+  }
+];
+
+const counselorById = (id) => COUNSELORS.find((c) => c.id === id);
 
 app.get('/', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
@@ -155,19 +87,26 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-app.post('/login', (req, res) => {
-  const username = String(req.body.username || '').trim().toLowerCase();
-  const account = getUserByUsername.get(username);
-  if (account && bcrypt.compareSync(String(req.body.password || ''), account.password_hash)) {
+app.post('/login', async (req, res) => {
+  try {
+    const data = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: req.body.email, password: req.body.password }),
+    });
     req.session.user = {
-      id: account.id,
-      username: account.username,
-      name: account.name,
-      role: account.role
+      id: data.user.id,
+      email: data.user.email,
+      name: `${data.user.firstName} ${data.user.lastName}`,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      role: data.user.role.toLowerCase(),
+      token: data.token,
+      hasConsented: true,
     };
-    return res.redirect('/home');
+    res.redirect('/home');
+  } catch {
+    res.status(401).render('login', { error: 'Invalid email or password' });
   }
-  res.status(401).render('login', { error: 'Invalid username or password' });
 });
 
 app.get('/register', (req, res) => {
@@ -175,30 +114,36 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null });
 });
 
-app.post('/register', (req, res) => {
-  const username = String(req.body.username || '').trim().toLowerCase();
-  const name = String(req.body.name || '').trim();
-  const password = String(req.body.password || '');
-  const confirm = String(req.body.confirm || '');
-
+app.post('/register', async (req, res) => {
   let error = null;
-  if (!username || !name || !password) error = 'Please fill in all fields.';
-  else if (!/^[a-z0-9_]{3,20}$/.test(username))
-    error = 'Username must be 3–20 characters (letters, numbers, underscore).';
+  const { email, password, firstName, lastName } = req.body;
+  const confirm = req.body.confirm || '';
+
+  if (!email || !firstName || !lastName || !password) error = 'Please fill in all fields.';
   else if (password.length < 6) error = 'Password must be at least 6 characters.';
   else if (password !== confirm) error = 'Passwords do not match.';
-  else if (getUserByUsername.get(username)) error = 'That username is already taken.';
 
   if (error) return res.status(400).render('register', { error });
 
-  const result = insertUser.run(username, name, bcrypt.hashSync(password, 10), 'user', today());
-  req.session.user = {
-    id: Number(result.lastInsertRowid),
-    username,
-    name,
-    role: 'user'
-  };
-  res.redirect('/home');
+  try {
+    const data = await apiRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, firstName, lastName, role: 'STUDENT' }),
+    });
+    req.session.user = {
+      id: data.user.id,
+      email: data.user.email,
+      name: `${data.user.firstName} ${data.user.lastName}`,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      role: 'user',
+      token: data.token,
+      hasConsented: false,
+    };
+    res.redirect('/nda');
+  } catch (err) {
+    res.status(400).render('register', { error: err.message || 'Registration failed' });
+  }
 });
 
 app.post('/logout', (req, res) => {
@@ -206,13 +151,13 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/nda', requireAuth, (req, res) => {
-  if (hasConsented.get(req.session.user.id)) return res.redirect('/home');
+  if (req.session.user.hasConsented) return res.redirect('/home');
   res.render('nda', { user: req.session.user });
 });
 
 app.post('/nda', requireAuth, (req, res) => {
   if (req.body.agree) {
-    recordConsent.run(req.session.user.id, new Date().toISOString());
+    req.session.user.hasConsented = true;
   }
   res.redirect('/home');
 });
@@ -229,21 +174,30 @@ app.get('/guidance', requireAuth, requireConsent, (req, res) => {
   res.render('guidance', { user: req.session.user, counselors: COUNSELORS });
 });
 
-app.get('/appointments', requireAuth, requireConsent, (req, res) => {
-  const rows =
-    req.session.user.role === 'admin'
-      ? getAppointmentsAll.all()
-      : getAppointmentsByStudent.all(req.session.user.username);
-  res.render('appointments', {
-    user: req.session.user,
-    appointments: rows,
-    counselors: COUNSELORS,
-    counselorById,
-    error: null
-  });
+app.get('/appointments', requireAuth, requireConsent, async (req, res) => {
+  try {
+    const appointments = await apiRequest('/appointments', {
+      token: req.session.user.token,
+    });
+    res.render('appointments', {
+      user: req.session.user,
+      appointments,
+      counselors: COUNSELORS,
+      counselorById,
+      error: null
+    });
+  } catch (err) {
+    res.render('appointments', {
+      user: req.session.user,
+      appointments: [],
+      counselors: COUNSELORS,
+      counselorById,
+      error: err.message
+    });
+  }
 });
 
-app.post('/appointments', requireAuth, requireConsent, (req, res) => {
+app.post('/appointments', requireAuth, requireConsent, async (req, res) => {
   const { counselorId, date, time, purpose } = req.body;
   const counselor = counselorById(Number(counselorId));
   const error = !counselor || !date || !time
@@ -252,51 +206,76 @@ app.post('/appointments', requireAuth, requireConsent, (req, res) => {
   if (error) {
     return res.status(400).render('appointments', {
       user: req.session.user,
-      appointments:
-        req.session.user.role === 'admin'
-          ? getAppointmentsAll.all()
-          : getAppointmentsByStudent.all(req.session.user.username),
+      appointments: [],
       counselors: COUNSELORS,
       counselorById,
       error
     });
   }
-  insertAppointment.run(
-    req.session.user.username,
-    counselor.id,
-    date,
-    time,
-    purpose || 'General consultation',
-    'scheduled',
-    today()
-  );
+  try {
+    await apiRequest('/appointments', {
+      method: 'POST',
+      token: req.session.user.token,
+      body: JSON.stringify({
+        counselorId: counselor.id,
+        scheduledAt: `${date}T${time}:00.000Z`,
+        purpose: purpose || 'General consultation',
+      }),
+    });
+    res.redirect('/appointments');
+  } catch (err) {
+    res.status(400).render('appointments', {
+      user: req.session.user,
+      appointments: [],
+      counselors: COUNSELORS,
+      counselorById,
+      error: err.message
+    });
+  }
+});
+
+app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+  try {
+    await apiRequest(`/appointments/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'COMPLETED' }),
+    });
+  } catch {}
   res.redirect('/appointments');
 });
 
-app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
-  const appt = getAppointmentById.get(Number(req.params.id));
-  if (appt) updateAppointmentStatus.run('completed', appt.id);
+app.post('/appointments/:id/cancel', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+  try {
+    await apiRequest(`/appointments/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'CANCELLED' }),
+    });
+  } catch {}
   res.redirect('/appointments');
 });
 
-app.post('/appointments/:id/cancel', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
-  const appt = getAppointmentById.get(Number(req.params.id));
-  if (appt) updateAppointmentStatus.run('cancelled', appt.id);
-  res.redirect('/appointments');
+app.get('/concerns', requireAuth, requireConsent, async (req, res) => {
+  try {
+    const concerns = await apiRequest('/concerns', {
+      token: req.session.user.token,
+    });
+    res.render('concerns', {
+      user: req.session.user,
+      concerns,
+      error: null
+    });
+  } catch (err) {
+    res.render('concerns', {
+      user: req.session.user,
+      concerns: [],
+      error: err.message
+    });
+  }
 });
 
-app.get('/concerns', requireAuth, requireConsent, (req, res) => {
-  res.render('concerns', {
-    user: req.session.user,
-    concerns:
-      req.session.user.role === 'admin'
-        ? getConcernsAll.all()
-        : getConcernsByStudent.all(req.session.user.username),
-    error: null
-  });
-});
-
-app.post('/concerns', requireAuth, requireConsent, (req, res) => {
+app.post('/concerns', requireAuth, requireConsent, async (req, res) => {
   const { category, title, description } = req.body;
   const error = !category || !title || !description
     ? 'Please fill in the category, title, and description.'
@@ -304,27 +283,34 @@ app.post('/concerns', requireAuth, requireConsent, (req, res) => {
   if (error) {
     return res.status(400).render('concerns', {
       user: req.session.user,
-      concerns:
-        req.session.user.role === 'admin'
-          ? getConcernsAll.all()
-          : getConcernsByStudent.all(req.session.user.username),
+      concerns: [],
       error
     });
   }
-  insertConcern.run(
-    req.session.user.username,
-    category,
-    title,
-    description,
-    'open',
-    today()
-  );
-  res.redirect('/concerns');
+  try {
+    await apiRequest('/concerns', {
+      method: 'POST',
+      token: req.session.user.token,
+      body: JSON.stringify({ category, title, description }),
+    });
+    res.redirect('/concerns');
+  } catch (err) {
+    res.status(400).render('concerns', {
+      user: req.session.user,
+      concerns: [],
+      error: err.message
+    });
+  }
 });
 
-app.post('/concerns/:id/resolve', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
-  const c = getConcernById.get(Number(req.params.id));
-  if (c) updateConcernStatus.run(c.status === 'resolved' ? 'open' : 'resolved', c.id);
+app.post('/concerns/:id/resolve', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+  try {
+    await apiRequest(`/concerns/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'RESOLVED' }),
+    });
+  } catch {}
   res.redirect('/concerns');
 });
 
@@ -332,15 +318,23 @@ app.get('/profile', requireAuth, requireConsent, (req, res) => {
   res.render('profile', { user: req.session.user });
 });
 
-app.get('/admin', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
-  res.render('admin', { user: req.session.user, users: getAllUsers.all() });
+app.get('/admin', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+  try {
+    const users = await apiRequest('/users', { token: req.session.user.token });
+    res.render('admin', { user: req.session.user, users });
+  } catch {
+    res.render('admin', { user: req.session.user, users: [] });
+  }
 });
 
-app.post('/admin/users/:id/role', requireAuth, requireConsent, requireRole('admin'), (req, res) => {
-  const target = getUserById.get(Number(req.params.id));
-  if (target && target.id !== req.session.user.id) {
-    updateUserRole.run(target.role === 'admin' ? 'user' : 'admin', target.id);
-  }
+app.post('/admin/users/:id/role', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+  try {
+    await apiRequest(`/users/${req.params.id}/role`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ role: req.body.role }),
+    });
+  } catch {}
   res.redirect('/admin');
 });
 
@@ -350,5 +344,5 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`GuideTrack site running at http://localhost:${PORT}`);
-  console.log('Seed logins: admin/admin123 (admin), user/user123 (user) — or register a new account.');
+  console.log('API backend:', process.env.API_URL || 'http://localhost:8080/api');
 });
