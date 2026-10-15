@@ -1,87 +1,89 @@
 <%- include('partials/header', { user, title: 'Concerns', path }) %>
 
 <%
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const countBy = (s) => concerns.filter((c) => c.status === s).length;
+  const tabs = [
+    { key: 'all', label: 'All', count: concerns.length },
+    { key: 'OPEN', label: 'Open', count: countBy('OPEN') },
+    { key: 'IN_PROGRESS', label: 'In Progress', count: countBy('IN_PROGRESS') },
+    { key: 'RESOLVED', label: 'Resolved', count: countBy('RESOLVED') },
+  ];
 %>
 
 <main class="container page-shell">
-  <section class="page-hero">
+  <section class="page-hero compact">
     <p class="kicker">Student Welfare</p>
     <h1>Concerns</h1>
     <p class="lead"><%= user.role === 'admin' || user.role === 'counselor' ? 'Review reported concerns and update their status.' : 'Report academic, personal, or wellness concerns and track their progress.' %></p>
-    <div class="page-hero-actions">
-      <a class="btn gold" href="#report">Report a Concern</a>
-    </div>
   </section>
 
   <% if (error) { %>
     <div class="alert error"><%= error %></div>
   <% } %>
 
-  <section class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-num"><%= concerns.length %></div>
-      <div class="stat-label">Total</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= concerns.filter(c => c.status === 'OPEN').length %></div>
-      <div class="stat-label">Open</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= concerns.filter(c => c.status === 'IN_PROGRESS').length %></div>
-      <div class="stat-label">In Progress</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= concerns.filter(c => c.status === 'RESOLVED').length %></div>
-      <div class="stat-label">Resolved</div>
-    </div>
-  </section>
-
   <div class="split">
     <section class="page-main">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Filter concerns">
+          <% tabs.forEach((t, i) => { %>
+            <button class="tab<%= i === 0 ? ' active' : '' %>" data-filter="<%= t.key %>" role="tab"><%= t.label %> <span class="tab-count"><%= t.count %></span></button>
+          <% }) %>
+        </div>
+        <input type="search" id="concern-search" class="toolbar-search" placeholder="Search concerns&hellip;" aria-label="Search concerns">
+      </div>
+
       <% if (concerns.length === 0) { %>
-        <div class="card">
-          <p class="muted">No concerns reported yet.</p>
+        <div class="empty-state light">
+          <strong>No concerns reported</strong>
+          <p>Submit your first report using the form.</p>
         </div>
       <% } else { %>
         <div class="concern-list">
           <% concerns.forEach((c) => { %>
-            <div class="concern-item">
+            <article class="concern-item" data-status="<%= c.status %>">
               <div class="concern-item-head">
+                <span class="tag"><%= c.category %></span>
                 <h3 class="concern-title"><%= c.title %></h3>
-                <span class="badge status-<%= c.status.toLowerCase() %>"><%= c.status %></span>
-                <span class="concern-meta">
-                  <%= c.category %> &middot; <%= fmtDate(c.createdAt) %>
-                </span>
               </div>
+              <p class="concern-meta-line"><%= fmtDate(c.createdAt) %><% if (c.student) { %> &middot; <%= c.student.firstName %> <%= c.student.lastName %><% } %></p>
               <p class="concern-body"><%= c.description %></p>
-              <% if (user.role === 'admin' || user.role === 'counselor') { %>
-                <div class="concern-actions">
-                  <% if (c.status === 'OPEN') { %>
-                    <form method="POST" action="/concerns/<%= c.id %>/progress">
-                      <button type="submit" class="btn btn-sm">Mark In Progress</button>
-                    </form>
-                  <% } %>
-                  <% if (c.status !== 'RESOLVED') { %>
-                    <form method="POST" action="/concerns/<%= c.id %>/resolve">
-                      <button type="submit" class="btn btn-sm ok">Resolve</button>
-                    </form>
-                  <% } %>
-                </div>
-              <% } %>
-            </div>
+              <div class="concern-foot">
+                <span class="badge status-<%= c.status.toLowerCase() %>"><%= c.status.replace('_', ' ') %></span>
+                <% if (user.role === 'admin' || user.role === 'counselor') { %>
+                  <span class="concern-actions">
+                    <% if (c.status === 'OPEN') { %>
+                      <form method="POST" action="/concerns/<%= c.id %>/progress">
+                        <button type="submit" class="btn btn-sm">Start Review</button>
+                      </form>
+                    <% } %>
+                    <% if (c.status !== 'RESOLVED') { %>
+                      <form method="POST" action="/concerns/<%= c.id %>/resolve">
+                        <button type="submit" class="btn btn-sm ok">Resolve</button>
+                      </form>
+                    <% } %>
+                  </span>
+                <% } %>
+              </div>
+            </article>
           <% }) %>
+        </div>
+        <div class="empty-state light" id="concern-empty" hidden>
+          <strong>Nothing matches</strong>
+          <p>Try a different tab or search term.</p>
         </div>
       <% } %>
     </section>
 
     <aside class="aside">
       <div class="card aside-card" id="report">
+        <p class="kicker" style="color:var(--maroon);">New report</p>
         <h2>Report a Concern</h2>
+        <p class="muted" style="font-size:0.88rem;">Confidential &mdash; only the guidance team sees this.</p>
         <form method="POST" action="/concerns">
-          <label for="category">Category</label>
+          <label for="category"><span class="step-mini">1</span> Category</label>
           <select id="category" name="category" required>
-            <option value="">— Select —</option>
+            <option value="">&mdash; Select &mdash;</option>
             <option value="Academic">Academic</option>
             <option value="Personal">Personal</option>
             <option value="Career">Career</option>
@@ -90,13 +92,13 @@
             <option value="Other">Other</option>
           </select>
 
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" required placeholder="Brief title">
+          <label for="title"><span class="step-mini">2</span> Title</label>
+          <input type="text" id="title" name="title" required placeholder="Brief summary">
 
-          <label for="description">Description</label>
-          <textarea id="description" name="description" required placeholder="Describe your concern..."></textarea>
+          <label for="description"><span class="step-mini">3</span> Details</label>
+          <textarea id="description" name="description" required placeholder="Describe your concern&hellip;"></textarea>
 
-          <button type="submit" class="btn primary">Submit Concern</button>
+          <button type="submit" class="btn primary" style="width:100%;">Submit Concern</button>
         </form>
       </div>
     </aside>
@@ -106,6 +108,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  var tabs = document.querySelectorAll('.tab');
+  var rows = document.querySelectorAll('[data-status]');
+  var search = document.getElementById('concern-search');
+  var empty = document.getElementById('concern-empty');
+  var active = 'all';
+
+  function apply() {
+    var q = search ? search.value.trim().toLowerCase() : '';
+    var visible = 0;
+    rows.forEach(function (row) {
+      var okTab = (active === 'all' || row.dataset.status === active);
+      var okText = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
+      var show = okTab && okText;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (empty) empty.hidden = visible !== 0;
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      active = tab.dataset.filter;
+      apply();
+    });
+  });
+  if (search) search.addEventListener('input', apply);
+
   var toggle = document.querySelector('.nav-toggle');
   var links = document.querySelector('.nav-links');
   if (toggle && links) {

@@ -1,65 +1,50 @@
 <%- include('partials/header', { user, title: 'Appointments', path }) %>
 
 <%
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const initials = (name) => name ? name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
-  const pending = appointments.filter((a) => a.status === 'PENDING').length;
-  const approved = appointments.filter((a) => a.status === 'APPROVED').length;
-  const completed = appointments.filter((a) => a.status === 'COMPLETED').length;
+  const countBy = (s) => appointments.filter((a) => a.status === s).length;
+  const tabs = [
+    { key: 'all', label: 'All', count: appointments.length },
+    { key: 'PENDING', label: 'Pending', count: countBy('PENDING') },
+    { key: 'APPROVED', label: 'Approved', count: countBy('APPROVED') },
+    { key: 'COMPLETED', label: 'Completed', count: countBy('COMPLETED') },
+    { key: 'CANCELLED', label: 'Cancelled', count: countBy('CANCELLED') },
+  ];
 %>
 
 <main class="container page-shell">
-  <section class="page-hero">
+  <section class="page-hero compact">
     <p class="kicker">University Guidance Center</p>
     <h1>Appointments</h1>
     <p class="lead"><%= user.role === 'admin' || user.role === 'counselor' ? 'Review, approve, and manage all appointment requests.' : 'Book sessions with a guidance counselor and track their status.' %></p>
-    <div class="page-hero-actions">
-      <a class="btn gold" href="#book">Book an Appointment</a>
-    </div>
   </section>
 
   <% if (error) { %>
     <div class="alert error"><%= error %></div>
   <% } %>
 
-  <section class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-num"><%= appointments.length %></div>
-      <div class="stat-label">Total</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= pending + approved %></div>
-      <div class="stat-label">Active</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= completed %></div>
-      <div class="stat-label">Completed</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num"><%= appointments.filter(a => a.status === 'CANCELLED').length %></div>
-      <div class="stat-label">Cancelled</div>
-    </div>
-  </section>
-
   <div class="split">
     <section class="page-main">
-      <div class="filter-chips" role="group" aria-label="Filter appointments">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="PENDING">Pending</button>
-        <button class="chip" data-filter="APPROVED">Approved</button>
-        <button class="chip" data-filter="COMPLETED">Completed</button>
-        <button class="chip" data-filter="CANCELLED">Cancelled</button>
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Filter appointments">
+          <% tabs.forEach((t, i) => { %>
+            <button class="tab<%= i === 0 ? ' active' : '' %>" data-filter="<%= t.key %>" role="tab"><%= t.label %> <span class="tab-count"><%= t.count %></span></button>
+          <% }) %>
+        </div>
+        <input type="search" id="appt-search" class="toolbar-search" placeholder="Search appointments&hellip;" aria-label="Search appointments">
       </div>
 
       <% if (appointments.length === 0) { %>
-        <div class="card">
-          <p class="muted">No appointments yet. Book one using the form.</p>
+        <div class="empty-state light">
+          <strong>No appointments yet</strong>
+          <p>Book your first session using the form.</p>
         </div>
       <% } else { %>
         <div class="appt-list">
           <% appointments.forEach((a) => { %>
-            <div class="appt-row" data-status="<%= a.status %>">
+            <article class="appt-row" data-status="<%= a.status %>">
               <div class="appt-when">
                 <div class="appt-date"><%= fmtDate(a.scheduledAt) %></div>
                 <div class="appt-time"><%= fmtTime(a.scheduledAt) %></div>
@@ -68,7 +53,8 @@
                 <div class="appt-purpose"><%= a.purpose %></div>
                 <div class="appt-meta">
                   <% if (user.role === 'admin' || user.role === 'counselor') { %>
-                    <strong><%= a.student ? a.student.firstName + ' ' + a.student.lastName : 'Unknown' %></strong> &middot;
+                    <strong><%= a.student ? a.student.firstName + ' ' + a.student.lastName : 'Unknown student' %></strong>
+                    <span aria-hidden="true">&middot;</span>
                   <% } %>
                   <span class="counselor-cell">
                     <span class="avatar"><%= a.counselor ? initials(a.counselor.firstName + ' ' + a.counselor.lastName) : '?' %></span>
@@ -76,55 +62,62 @@
                   </span>
                 </div>
               </div>
-              <div class="appt-status">
+              <div class="appt-side">
                 <span class="badge status-<%= a.status.toLowerCase() %>"><%= a.status %></span>
+                <% if (user.role === 'admin' || user.role === 'counselor') { %>
+                  <div class="appt-actions">
+                    <% if (a.status === 'PENDING') { %>
+                      <form method="POST" action="/appointments/<%= a.id %>/approve">
+                        <button type="submit" class="btn btn-sm ok">Approve</button>
+                      </form>
+                      <form method="POST" action="/appointments/<%= a.id %>/reject">
+                        <button type="submit" class="btn btn-sm danger">Decline</button>
+                      </form>
+                    <% } else if (a.status === 'APPROVED') { %>
+                      <form method="POST" action="/appointments/<%= a.id %>/complete">
+                        <button type="submit" class="btn btn-sm ok">Complete</button>
+                      </form>
+                      <form method="POST" action="/appointments/<%= a.id %>/cancel">
+                        <button type="submit" class="btn btn-sm danger">Cancel</button>
+                      </form>
+                    <% } %>
+                  </div>
+                <% } %>
               </div>
-              <% if (user.role === 'admin' || user.role === 'counselor') { %>
-                <div class="appt-actions">
-                  <% if (a.status === 'PENDING') { %>
-                    <form method="POST" action="/appointments/<%= a.id %>/approve">
-                      <button type="submit" class="btn btn-sm ok">Approve</button>
-                    </form>
-                    <form method="POST" action="/appointments/<%= a.id %>/reject">
-                      <button type="submit" class="btn btn-sm danger">Reject</button>
-                    </form>
-                  <% } else if (a.status === 'APPROVED') { %>
-                    <form method="POST" action="/appointments/<%= a.id %>/complete">
-                      <button type="submit" class="btn btn-sm ok">Complete</button>
-                    </form>
-                  <% } else { %>
-                    <span class="muted">&mdash;</span>
-                  <% } %>
-                </div>
-              <% } %>
-            </div>
+            </article>
           <% }) %>
+        </div>
+        <div class="empty-state light" id="appt-empty" hidden>
+          <strong>Nothing matches</strong>
+          <p>Try a different tab or search term.</p>
         </div>
       <% } %>
     </section>
 
     <aside class="aside">
       <div class="card aside-card" id="book">
+        <p class="kicker" style="color:var(--maroon);">New booking</p>
         <h2>Book an Appointment</h2>
+        <p class="muted" style="font-size:0.88rem;">Three quick steps and you are scheduled.</p>
         <form method="POST" action="/appointments">
-          <label for="counselorId">Counselor</label>
+          <label for="counselorId"><span class="step-mini">1</span> Counselor</label>
           <select id="counselorId" name="counselorId" required>
-            <option value="">— Select —</option>
+            <option value="">&mdash; Select &mdash;</option>
             <% counselors.forEach((c) => { %>
-              <option value="<%= c.id %>"><%= c.name %> — <%= c.title %></option>
+              <option value="<%= c.id %>"><%= c.name %> &mdash; <%= c.title %></option>
             <% }) %>
           </select>
 
-          <label for="date">Date</label>
-          <input type="date" id="date" name="date" required>
+          <label for="date"><span class="step-mini">2</span> Date &amp; time</label>
+          <div class="form-grid">
+            <input type="date" id="date" name="date" required>
+            <input type="time" id="time" name="time" required>
+          </div>
 
-          <label for="time">Time</label>
-          <input type="time" id="time" name="time" required>
+          <label for="purpose"><span class="step-mini">3</span> Purpose</label>
+          <input type="text" id="purpose" name="purpose" placeholder="e.g. Academic advising, career assessment&hellip;">
 
-          <label for="purpose">Purpose</label>
-          <input type="text" id="purpose" name="purpose" placeholder="e.g. Academic advising, career assessment...">
-
-          <button type="submit" class="btn primary">Schedule Appointment</button>
+          <button type="submit" class="btn primary" style="width:100%;">Schedule Appointment</button>
         </form>
       </div>
     </aside>
@@ -134,18 +127,34 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  var chips = document.querySelectorAll('.chip');
+  var tabs = document.querySelectorAll('.tab');
   var rows = document.querySelectorAll('[data-status]');
-  chips.forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      chips.forEach(function (c) { c.classList.remove('active'); });
-      chip.classList.add('active');
-      var f = chip.dataset.filter;
-      rows.forEach(function (row) {
-        row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
-      });
+  var search = document.getElementById('appt-search');
+  var empty = document.getElementById('appt-empty');
+  var active = 'all';
+
+  function apply() {
+    var q = search ? search.value.trim().toLowerCase() : '';
+    var visible = 0;
+    rows.forEach(function (row) {
+      var okTab = (active === 'all' || row.dataset.status === active);
+      var okText = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
+      var show = okTab && okText;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (empty) empty.hidden = visible !== 0;
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      active = tab.dataset.filter;
+      apply();
     });
   });
+  if (search) search.addEventListener('input', apply);
 
   var toggle = document.querySelector('.nav-toggle');
   var links = document.querySelector('.nav-links');
