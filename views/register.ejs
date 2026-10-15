@@ -30,6 +30,19 @@
       <label for="lastName">Last Name</label>
       <input type="text" id="lastName" name="lastName" autocomplete="family-name" required>
 
+      <label for="role">Role</label>
+      <select id="role" name="role" required>
+        <option value="STUDENT">Student</option>
+        <option value="FACULTY">Faculty</option>
+        <option value="COUNSELOR">Guidance Counselor</option>
+      </select>
+
+      <label for="studentId">Student ID <span class="muted">(optional — for students)</span></label>
+      <input type="text" id="studentId" name="studentId" placeholder="e.g. 2023-00001">
+
+      <label for="department">Department <span class="muted">(optional)</span></label>
+      <input type="text" id="department" name="department" placeholder="e.g. College of Engineering">
+
       <label for="password">Password</label>
       <input type="password" id="password" name="password" autocomplete="new-password" minlength="6" required>
 
