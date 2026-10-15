@@ -175,6 +175,13 @@ app.get('/guidance', requireAuth, requireConsent, (req, res) => {
 });
 
 app.get('/appointments', requireAuth, requireConsent, async (req, res) => {
+  let directory = [];
+  try {
+    directory = await apiRequest('/users/directory', { token: req.session.user.token });
+  } catch {}
+  const counselors = directory.length
+    ? directory.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, title: c.department || 'Guidance Counselor' }))
+    : COUNSELORS;
   try {
     const appointments = await apiRequest('/appointments', {
       token: req.session.user.token,
@@ -182,7 +189,7 @@ app.get('/appointments', requireAuth, requireConsent, async (req, res) => {
     res.render('appointments', {
       user: req.session.user,
       appointments,
-      counselors: COUNSELORS,
+      counselors,
       counselorById,
       error: null
     });
@@ -190,7 +197,7 @@ app.get('/appointments', requireAuth, requireConsent, async (req, res) => {
     res.render('appointments', {
       user: req.session.user,
       appointments: [],
-      counselors: COUNSELORS,
+      counselors,
       counselorById,
       error: err.message
     });
@@ -199,15 +206,22 @@ app.get('/appointments', requireAuth, requireConsent, async (req, res) => {
 
 app.post('/appointments', requireAuth, requireConsent, async (req, res) => {
   const { counselorId, date, time, purpose } = req.body;
-  const counselor = counselorById(Number(counselorId));
-  const error = !counselor || !date || !time
+  let directory = [];
+  try {
+    directory = await apiRequest('/users/directory', { token: req.session.user.token });
+  } catch {}
+  const counselors = directory.length
+    ? directory.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, title: c.department || 'Guidance Counselor' }))
+    : COUNSELORS;
+  const validCounselor = String(counselorId || '').length > 0;
+  const error = !validCounselor || !date || !time
     ? 'Please choose a counselor, a date, and a time.'
     : null;
   if (error) {
     return res.status(400).render('appointments', {
       user: req.session.user,
       appointments: [],
-      counselors: COUNSELORS,
+      counselors,
       counselorById,
       error
     });
@@ -217,7 +231,7 @@ app.post('/appointments', requireAuth, requireConsent, async (req, res) => {
       method: 'POST',
       token: req.session.user.token,
       body: JSON.stringify({
-        counselorId: counselor.id,
+        counselorId: String(counselorId),
         scheduledAt: `${date}T${time}:00.000Z`,
         purpose: purpose || 'General consultation',
       }),
@@ -227,7 +241,7 @@ app.post('/appointments', requireAuth, requireConsent, async (req, res) => {
     res.status(400).render('appointments', {
       user: req.session.user,
       appointments: [],
-      counselors: COUNSELORS,
+      counselors,
       counselorById,
       error: err.message
     });

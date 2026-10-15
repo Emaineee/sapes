@@ -1,51 +1,82 @@
 <%- include('partials/header', { user, title: 'Admin', path }) %>
 
-<main class="container">
-  <section class="hero">
+<%
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const roles = ['ADMIN', 'COUNSELOR', 'STUDENT', 'FACULTY'];
+%>
+
+<main class="container page-shell">
+  <section class="page-hero">
     <p class="kicker">Administration</p>
     <h1>Admin Panel</h1>
-    <p class="muted">Protected by <code>requireRole('admin')</code> — manage accounts, appointments, and concerns.</p>
+    <p class="lead">Manage user accounts and roles across the GuideTrack system.</p>
   </section>
 
-  <div class="card">
-    <h2>User Accounts</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Joined</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% users.forEach((u) => { %>
+  <div class="section-head">
+    <h2>User accounts</h2>
+    <p class="muted"><%= users.length %> registered</p>
+  </div>
+
+  <div class="panel" style="margin-top:0;">
+    <% if (users.length === 0) { %>
+      <div class="empty-state">
+        <strong>No users found</strong>
+        <p>Accounts will appear here once created.</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td><%= u.username %></td>
-              <td><%= u.name %></td>
-              <td><span class="badge role-<%= u.role %>"><%= u.role %></span></td>
-              <td><%= u.created_at %></td>
-              <td class="actions">
-                <% if (u.id === user.id) { %>
-                  <span class="muted">you</span>
-                <% } else { %>
-                  <form method="POST" action="/admin/users/<%= u.id %>/role">
-                    <button type="submit" class="btn btn-sm <%= u.role === 'admin' ? 'danger' : 'ok' %>">
-                      <%= u.role === 'admin' ? 'Demote to user' : 'Promote to admin' %>
-                    </button>
-                  </form>
-                <% } %>
-              </td>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
             </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-    <p class="muted">Passwords are stored as bcrypt hashes — they can never be read back.</p>
+          </thead>
+          <tbody>
+            <% users.forEach((u) => { %>
+              <tr>
+                <td><strong><%= u.firstName %> <%= u.lastName %></strong></td>
+                <td><%= u.email %></td>
+                <td><span class="badge role-<%= String(u.role).toLowerCase() %>"><%= u.role %></span></td>
+                <td><%= fmtDate(u.createdAt) %></td>
+                <td class="actions">
+                  <% if (u.id === user.id) { %>
+                    <span class="muted">you</span>
+                  <% } else { %>
+                    <form method="POST" action="/admin/users/<%= u.id %>/role" style="display:flex;gap:0.5rem;align-items:center;">
+                      <select name="role" aria-label="Role for <%= u.email %>" style="padding:0.4rem 0.6rem;font-size:0.82rem;">
+                        <% roles.forEach((r) => { %>
+                          <option value="<%= r %>" <%= u.role === r ? 'selected' : '' %>><%= r %></option>
+                        <% }) %>
+                      </select>
+                      <button type="submit" class="btn btn-sm ok">Save</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+    <p class="muted">Passwords are stored as bcrypt hashes &mdash; they can never be read back.</p>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+});
+</script>
 </body>
 </html>
