@@ -96,9 +96,9 @@ app.post('/login', async (req, res) => {
     req.session.user = {
       id: data.user.id,
       email: data.user.email,
-      name: `${data.user.firstName} ${data.user.lastName}`,
       firstName: data.user.firstName,
       lastName: data.user.lastName,
+      name: `${data.user.firstName} ${data.user.lastName}`,
       role: data.user.role.toLowerCase(),
       token: data.token,
       hasConsented: true,
@@ -133,10 +133,10 @@ app.post('/register', async (req, res) => {
     req.session.user = {
       id: data.user.id,
       email: data.user.email,
-      name: `${data.user.firstName} ${data.user.lastName}`,
       firstName: data.user.firstName,
       lastName: data.user.lastName,
-      role: 'user',
+      name: `${data.user.firstName} ${data.user.lastName}`,
+      role: 'student',
       token: data.token,
       hasConsented: false,
     };
@@ -234,7 +234,29 @@ app.post('/appointments', requireAuth, requireConsent, async (req, res) => {
   }
 });
 
-app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+app.post('/appointments/:id/approve', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
+  try {
+    await apiRequest(`/appointments/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'APPROVED' }),
+    });
+  } catch {}
+  res.redirect('/appointments');
+});
+
+app.post('/appointments/:id/reject', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
+  try {
+    await apiRequest(`/appointments/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'REJECTED' }),
+    });
+  } catch {}
+  res.redirect('/appointments');
+});
+
+app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
   try {
     await apiRequest(`/appointments/${req.params.id}`, {
       method: 'PATCH',
@@ -245,7 +267,7 @@ app.post('/appointments/:id/complete', requireAuth, requireConsent, requireRole(
   res.redirect('/appointments');
 });
 
-app.post('/appointments/:id/cancel', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+app.post('/appointments/:id/cancel', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
   try {
     await apiRequest(`/appointments/${req.params.id}`, {
       method: 'PATCH',
@@ -303,7 +325,18 @@ app.post('/concerns', requireAuth, requireConsent, async (req, res) => {
   }
 });
 
-app.post('/concerns/:id/resolve', requireAuth, requireConsent, requireRole('admin'), async (req, res) => {
+app.post('/concerns/:id/progress', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
+  try {
+    await apiRequest(`/concerns/${req.params.id}`, {
+      method: 'PATCH',
+      token: req.session.user.token,
+      body: JSON.stringify({ status: 'IN_PROGRESS' }),
+    });
+  } catch {}
+  res.redirect('/concerns');
+});
+
+app.post('/concerns/:id/resolve', requireAuth, requireConsent, requireRole('admin', 'counselor'), async (req, res) => {
   try {
     await apiRequest(`/concerns/${req.params.id}`, {
       method: 'PATCH',

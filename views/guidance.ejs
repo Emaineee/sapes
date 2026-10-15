@@ -1,30 +1,49 @@
-<%- include('partials/header', { user, title: '', path }) %>
+<%- include('partials/header', { user, title: 'Guidance Center', path }) %>
 
 <main class="container">
-  <section class="hero">
-    <p class="kicker">Student Support Services</p>
-    <h1>University Guidance Center</h1>
-    <p class="muted">Guidance and counseling services for students of the University of Perpetual Help System DALTA – Calamba Campus.</p>
-  </section>
+  <div class="page-head">
+    <p class="kicker">Guidance Center</p>
+    <h1>Our Counselors</h1>
+    <p class="muted">Meet the guidance team at UPHSD Calamba.</p>
+  </div>
 
   <div class="cards">
     <% counselors.forEach((c) => { %>
-      <div class="card counselor-card">
-        <h2><%= c.name %></h2>
-        <p class="counselor-title"><%= c.title %></p>
+      <div class="card">
+        <div class="counselor-cell" style="margin-bottom: 0.75rem;">
+          <span class="avatar"><%= c.name.split(' ').map(w => w[0]).slice(0,2).join('') %></span>
+          <div>
+            <div class="counselor-title"><%= c.name %></div>
+            <div class="muted" style="font-size: 0.82rem;"><%= c.title %></div>
+          </div>
+        </div>
         <% if (c.cluster) { %>
-          <p class="muted"><%= c.cluster %></p>
+          <p class="muted" style="font-size: 0.85rem;"><%= c.cluster %></p>
         <% } %>
+        <a class="btn btn-sm outline" href="/appointments">Book Appointment</a>
       </div>
     <% }) %>
   </div>
 
-  <div class="card highlight">
-    <h2>Need guidance?</h2>
-    <p>Schedule an appointment with a counselor or psychometrician.</p>
-    <a class="btn primary" href="/appointments">Book an Appointment</a>
+  <div class="card" style="margin-top: 1.5rem;">
+    <h2>Announcements</h2>
+    <p class="muted">Stay updated with the latest from the guidance office.</p>
+    <p class="muted">Announcements will appear here once posted by the guidance team.</p>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+});
+</script>
 </body>
 </html>

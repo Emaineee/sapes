@@ -1,12 +1,37 @@
-<%- include('partials/header', { user, title: '', path }) %>
+<%- include('partials/header', { user, title: 'Profile', path }) %>
+
+<%
+  const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const roleLabel = { admin: 'Administrator', counselor: 'Guidance Counselor', student: 'Student', faculty: 'Faculty Member' };
+%>
 
 <main class="container">
-  <h1>Your Profile</h1>
-  <div class="card profile-card">
-    <p><strong>Name:</strong> <%= user.name %></p>
-    <p><strong>Username:</strong> <%= user.username %></p>
-    <p><strong>Role:</strong> <span class="badge role-<%= user.role %>"><%= user.role %></span></p>
-    <p><strong>Session:</strong> only the fields above are stored server-side; no password is kept in the session.</p>
+  <div class="card">
+    <div class="profile-header">
+      <span class="avatar"><%= initials(user.name) %></span>
+      <div class="profile-info">
+        <h1><%= user.name %></h1>
+        <p class="muted"><%= roleLabel[user.role] || user.role %></p>
+      </div>
+    </div>
+    <div class="profile-grid">
+      <div class="profile-field">
+        <div class="profile-field-label">Full Name</div>
+        <div class="profile-field-value"><%= user.name %></div>
+      </div>
+      <div class="profile-field">
+        <div class="profile-field-label">Email</div>
+        <div class="profile-field-value"><%= user.email %></div>
+      </div>
+      <div class="profile-field">
+        <div class="profile-field-label">Role</div>
+        <div class="profile-field-value"><span class="badge role-<%= user.role %>"><%= user.role %></span></div>
+      </div>
+      <div class="profile-field">
+        <div class="profile-field-label">User ID</div>
+        <div class="profile-field-value"><%= user.id %></div>
+      </div>
+    </div>
   </div>
 </main>
 <%- include('partials/footer', { user }) %>

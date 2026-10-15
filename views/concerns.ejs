@@ -1,18 +1,15 @@
 <%- include('partials/header', { user, title: 'Concerns', path }) %>
 
 <%
-  const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const openCount = concerns.filter((c) => c.status === 'open').length;
-  const resolvedCount = concerns.filter((c) => c.status === 'resolved').length;
-  const resolution = concerns.length === 0 ? '—' : Math.round((resolvedCount / concerns.length) * 100) + '%';
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 %>
 
 <main class="container container-wide">
   <div class="page-head-row">
     <div>
-      <p class="kicker">Student Feedback</p>
-      <h1>Concerns &amp; Problems</h1>
-      <p class="muted"><%= user.role === 'admin' ? 'All reports across all students — admin view.' : 'Report a concern or problem you are facing.' %></p>
+      <p class="kicker">Student Concerns</p>
+      <h1>Your Concerns</h1>
+      <p class="muted"><%= user.role === 'admin' || user.role === 'counselor' ? 'All reported concerns.' : 'Track and report your concerns.' %></p>
     </div>
   </div>
 
@@ -26,54 +23,52 @@
       <div class="stat-label">Total</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= openCount %></div>
+      <div class="stat-num"><%= concerns.filter(c => c.status === 'OPEN').length %></div>
       <div class="stat-label">Open</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= resolvedCount %></div>
-      <div class="stat-label">Resolved</div>
+      <div class="stat-num"><%= concerns.filter(c => c.status === 'IN_PROGRESS').length %></div>
+      <div class="stat-label">In Progress</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= user.role === 'admin' ? resolution : '—' %></div>
-      <div class="stat-label">Resolution</div>
+      <div class="stat-num"><%= concerns.filter(c => c.status === 'RESOLVED').length %></div>
+      <div class="stat-label">Resolved</div>
     </div>
   </section>
 
   <div class="page-grid">
     <section class="page-main">
-      <div class="filter-chips" role="group" aria-label="Filter concerns">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="open">Open</button>
-        <button class="chip" data-filter="resolved">Resolved</button>
-      </div>
-
       <% if (concerns.length === 0) { %>
         <div class="card">
-          <p class="muted">No concerns reported yet. Submit one using the form.</p>
+          <p class="muted">No concerns reported yet.</p>
         </div>
       <% } else { %>
         <div class="concern-list">
           <% concerns.forEach((c) => { %>
-            <article class="concern-item" data-status="<%= c.status %>">
+            <div class="concern-item">
               <div class="concern-item-head">
-                <span class="badge status-<%= c.status %>"><%= c.status %></span>
-                <span class="tag"><%= c.category %></span>
-                <strong class="concern-title"><%= c.title %></strong>
-                <span class="concern-meta muted">
-                  <%= fmtDate(c.date) %><% if (user.role === 'admin') { %> &middot; <%= c.student %><% } %>
+                <h3 class="concern-title"><%= c.title %></h3>
+                <span class="badge status-<%= c.status.toLowerCase() %>"><%= c.status %></span>
+                <span class="concern-meta">
+                  <%= c.category %> &middot; <%= fmtDate(c.createdAt) %>
                 </span>
               </div>
               <p class="concern-body"><%= c.description %></p>
-              <% if (user.role === 'admin') { %>
+              <% if (user.role === 'admin' || user.role === 'counselor') { %>
                 <div class="concern-actions">
-                  <form method="POST" action="/concerns/<%= c.id %>/resolve">
-                    <button type="submit" class="btn btn-sm <%= c.status === 'resolved' ? 'danger' : 'ok' %>">
-                      <%= c.status === 'resolved' ? 'Reopen' : 'Mark Resolved' %>
-                    </button>
-                  </form>
+                  <% if (c.status === 'OPEN') { %>
+                    <form method="POST" action="/concerns/<%= c.id %>/progress">
+                      <button type="submit" class="btn btn-sm">Mark In Progress</button>
+                    </form>
+                  <% } %>
+                  <% if (c.status !== 'RESOLVED') { %>
+                    <form method="POST" action="/concerns/<%= c.id %>/resolve">
+                      <button type="submit" class="btn btn-sm ok">Resolve</button>
+                    </form>
+                  <% } %>
                 </div>
               <% } %>
-            </article>
+            </div>
           <% }) %>
         </div>
       <% } %>
@@ -86,18 +81,19 @@
           <label for="category">Category</label>
           <select id="category" name="category" required>
             <option value="">— Select —</option>
-            <option>Academic</option>
-            <option>Facilities</option>
-            <option>Guidance</option>
-            <option>Administrative</option>
-            <option>Other</option>
+            <option value="Academic">Academic</option>
+            <option value="Personal">Personal</option>
+            <option value="Career">Career</option>
+            <option value="Mental Health">Mental Health</option>
+            <option value="Financial">Financial</option>
+            <option value="Other">Other</option>
           </select>
 
           <label for="title">Title</label>
-          <input type="text" id="title" name="title" required placeholder="Short summary">
+          <input type="text" id="title" name="title" required placeholder="Brief title">
 
           <label for="description">Description</label>
-          <textarea id="description" name="description" required placeholder="Describe the concern or problem in detail..."></textarea>
+          <textarea id="description" name="description" required placeholder="Describe your concern..."></textarea>
 
           <button type="submit" class="btn primary">Submit Concern</button>
         </form>
@@ -108,20 +104,16 @@
 <%- include('partials/footer', { user }) %>
 
 <script>
-(function () {
-  var chips = document.querySelectorAll('.chip');
-  var rows = document.querySelectorAll('[data-status]');
-  chips.forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      chips.forEach(function (c) { c.classList.remove('active'); });
-      chip.classList.add('active');
-      var f = chip.dataset.filter;
-      rows.forEach(function (row) {
-        row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
-      });
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
     });
-  });
-})();
+  }
+});
 </script>
 </body>
 </html>

@@ -1,11 +1,12 @@
 <%- include('partials/header', { user, title: 'Appointments', path }) %>
 
 <%
-  const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const initials = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  const sched = appointments.filter((a) => a.status === 'scheduled').length;
-  const done = appointments.filter((a) => a.status === 'completed').length;
-  const cancelled = appointments.filter((a) => a.status === 'cancelled').length;
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const initials = (name) => name ? name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+  const pending = appointments.filter((a) => a.status === 'PENDING').length;
+  const approved = appointments.filter((a) => a.status === 'APPROVED').length;
+  const completed = appointments.filter((a) => a.status === 'COMPLETED').length;
 %>
 
 <main class="container container-wide">
@@ -13,7 +14,7 @@
     <div>
       <p class="kicker">University Guidance Center</p>
       <h1>Scheduled Appointments</h1>
-      <p class="muted"><%= user.role === 'admin' ? 'All appointments across all students — admin view.' : 'Your guidance and counseling appointments.' %></p>
+      <p class="muted"><%= user.role === 'admin' || user.role === 'counselor' ? 'All appointments across all students.' : 'Your guidance and counseling appointments.' %></p>
     </div>
   </div>
 
@@ -27,15 +28,15 @@
       <div class="stat-label">Total</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= sched %></div>
-      <div class="stat-label">Upcoming</div>
+      <div class="stat-num"><%= pending + approved %></div>
+      <div class="stat-label">Active</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= done %></div>
+      <div class="stat-num"><%= completed %></div>
       <div class="stat-label">Completed</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num"><%= cancelled %></div>
+      <div class="stat-num"><%= appointments.filter(a => a.status === 'CANCELLED').length %></div>
       <div class="stat-label">Cancelled</div>
     </div>
   </section>
@@ -44,9 +45,10 @@
     <section class="page-main">
       <div class="filter-chips" role="group" aria-label="Filter appointments">
         <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="scheduled">Upcoming</button>
-        <button class="chip" data-filter="completed">Completed</button>
-        <button class="chip" data-filter="cancelled">Cancelled</button>
+        <button class="chip" data-filter="PENDING">Pending</button>
+        <button class="chip" data-filter="APPROVED">Approved</button>
+        <button class="chip" data-filter="COMPLETED">Completed</button>
+        <button class="chip" data-filter="CANCELLED">Cancelled</button>
       </div>
 
       <% if (appointments.length === 0) { %>
@@ -55,37 +57,42 @@
         </div>
       <% } else { %>
         <div class="appt-list">
-          <% appointments.forEach((a) => {
-            const counselor = counselorById(a.counselorId); %>
+          <% appointments.forEach((a) => { %>
             <div class="appt-row" data-status="<%= a.status %>">
               <div class="appt-when">
-                <div class="appt-date"><%= fmtDate(a.date) %></div>
-                <div class="appt-time"><%= a.time %></div>
+                <div class="appt-date"><%= fmtDate(a.scheduledAt) %></div>
+                <div class="appt-time"><%= fmtTime(a.scheduledAt) %></div>
               </div>
               <div class="appt-main">
                 <div class="appt-purpose"><%= a.purpose %></div>
                 <div class="appt-meta">
-                  <% if (user.role === 'admin') { %><strong><%= a.student %></strong> &middot; <% } %>
+                  <% if (user.role === 'admin' || user.role === 'counselor') { %>
+                    <strong><%= a.student ? a.student.firstName + ' ' + a.student.lastName : 'Unknown' %></strong> &middot;
+                  <% } %>
                   <span class="counselor-cell">
-                    <span class="avatar"><%= counselor ? initials(counselor.name) : '?' %></span>
-                    <%= counselor ? counselor.name : 'Unassigned' %>
+                    <span class="avatar"><%= a.counselor ? initials(a.counselor.firstName + ' ' + a.counselor.lastName) : '?' %></span>
+                    <%= a.counselor ? a.counselor.firstName + ' ' + a.counselor.lastName : 'Unassigned' %>
                   </span>
                 </div>
               </div>
               <div class="appt-status">
-                <span class="badge status-<%= a.status %>"><%= a.status %></span>
+                <span class="badge status-<%= a.status.toLowerCase() %>"><%= a.status %></span>
               </div>
-              <% if (user.role === 'admin') { %>
+              <% if (user.role === 'admin' || user.role === 'counselor') { %>
                 <div class="appt-actions">
-                  <% if (a.status === 'scheduled') { %>
+                  <% if (a.status === 'PENDING') { %>
+                    <form method="POST" action="/appointments/<%= a.id %>/approve">
+                      <button type="submit" class="btn btn-sm ok">Approve</button>
+                    </form>
+                    <form method="POST" action="/appointments/<%= a.id %>/reject">
+                      <button type="submit" class="btn btn-sm danger">Reject</button>
+                    </form>
+                  <% } else if (a.status === 'APPROVED') { %>
                     <form method="POST" action="/appointments/<%= a.id %>/complete">
                       <button type="submit" class="btn btn-sm ok">Complete</button>
                     </form>
-                    <form method="POST" action="/appointments/<%= a.id %>/cancel">
-                      <button type="submit" class="btn btn-sm danger">Cancel</button>
-                    </form>
                   <% } else { %>
-                    <span class="muted">—</span>
+                    <span class="muted">&mdash;</span>
                   <% } %>
                 </div>
               <% } %>
@@ -125,7 +132,7 @@
 <%- include('partials/footer', { user }) %>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   var chips = document.querySelectorAll('.chip');
   var rows = document.querySelectorAll('[data-status]');
   chips.forEach(function (chip) {
@@ -138,7 +145,16 @@
       });
     });
   });
-})();
+
+  var toggle = document.querySelector('.nav-toggle');
+  var links = document.querySelector('.nav-links');
+  if (toggle && links) {
+    toggle.addEventListener('click', function () {
+      var isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+});
 </script>
 </body>
 </html>
